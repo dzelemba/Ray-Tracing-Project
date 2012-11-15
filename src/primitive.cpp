@@ -1,33 +1,94 @@
 #include "primitive.hpp"
 #include "polyroots.hpp"
+#include <cfloat>
 
 Primitive::~Primitive()
 {
 }
 
+bool Primitive::checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
+                                    const double A, const double B, const double C,
+                                    double& minT)
+{
+  bool pointFound = false;
+
+  double roots[2];
+  int numRoots = quadraticRoots(A, B, C, roots); 
+  if (numRoots != 0) {
+    for (int i = 0; i < 2; i++) {
+      double t = roots[i];
+      if (t > minValue && t < minT && checkPoint(eye + t * ray)) {
+        minT = t;
+        pointFound = true;
+      }
+    }
+  }
+
+  return pointFound;
+}
+ 
+bool Primitive::checkCircleRoot(const Point3D& eye, const Vector3D& ray, const double minValue,
+                                const double plane, double& minT)
+{
+  double t = (plane - eye[2]) / ray[2];
+  Point3D poi = eye + t * ray;
+
+
+  // Check if point is within circle
+  if (poi[0] * poi[0] + poi[1] * poi[1] <= 1.0) {
+    if (t >= minValue && t < minT) {
+      minT = t;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool Primitive::checkPoint(const Point3D& poi)
+{
+  (void) poi; // Silence Compiler Warnings
+
+  return true;
+}
+
+/* 
+  ********** Sphere **********
+*/
+
 Sphere::~Sphere()
 {
 }
 
-bool Sphere::intersect(const Point3D& eye, const Vector3D& ray, double offset, double& minT, Vector3D& normal)
+bool Sphere::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                       double& minT, Vector3D& normal)
 {
   return m_unitSphere.intersect(eye, ray, offset, minT, normal);
 }
+
+/* 
+  ********** Cube **********
+*/
 
 Cube::~Cube()
 {
 }
 
-bool Cube::intersect(const Point3D& eye, const Vector3D& ray, double offset, double& minT, Vector3D& normal)
+bool Cube::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                     double& minT, Vector3D& normal)
 {
   return m_unitCube.intersect(eye, ray, offset, minT, normal);
 }
 
+/* 
+  ********** NonhierSphere **********
+*/
 NonhierSphere::~NonhierSphere()
 {
 }
 
-bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, double offset, double& minT, Vector3D& normal)
+bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                              double& minT, Vector3D& normal)
 {
   double A = 0; 
   double B = 0;
@@ -43,27 +104,20 @@ bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, double of
   }
   C -= m_radius * m_radius;
 
-  bool closerObject = false;
-  double roots[2];
-  int numRoots = quadraticRoots(A, B, C, roots); 
-  if (numRoots != 0) {
-    for (int i = 0; i < 2; i++) {
-      if (roots[i] > offset && roots[i] < minT) {
-        minT = roots[i];
-        closerObject = true;
-      }
-    }
-  }
-
-  // Now calculate the normal to the point of intersection.
-  if (closerObject) {
+  if (checkQuadraticRoots(eye, ray, offset, A, B, C, minT)) {
+    // Now calculate the normal to the point of intersection.
     Point3D poi = eye + minT * ray;
     normal = poi - m_pos;
+    
+    return true;
   }
 
-  return closerObject;
+  return false;
 }
 
+/* 
+  ********** NonhierBox **********
+*/
 NonhierBox::~NonhierBox()
 {
 }
@@ -94,7 +148,8 @@ bool NonhierBox::checkPoint(Point3D p, int face, double t, double& minT, Vector3
   return false;
 }
 
-bool NonhierBox::intersect(const Point3D& eye, const Vector3D& ray, double offset, double& minT, Vector3D& normal)
+bool NonhierBox::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                           double& minT, Vector3D& normal)
 {
   // Since Nonhier box's are aligned with MCS, the plane equations become very simple.
   // Just {x,y,z} = {m_pos[0] [+ m_size], m_pos[1] [+ m_size], m_pos[2] [+ m_size]}.
@@ -115,4 +170,95 @@ bool NonhierBox::intersect(const Point3D& eye, const Vector3D& ray, double offse
     }
   }
   return found;
+}
+
+/* 
+  ********** Cone **********
+*/
+
+Cone::~Cone()
+{
+}
+
+bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                     double& minT, Vector3D& normal)
+{
+  double A = 0, B = 0, C = 0;
+
+  for (int i = 0; i < 3; i++) {
+    int mult = (i == 2 ? -1 : 1); // Negate Z coordinate
+    A += mult * (ray[i] * ray[i]);
+    B += mult * (2 * eye[i] * ray[i]);
+    C += mult * (eye[i] * eye[i]);
+  }
+
+  bool pointFound = false;
+  if (checkQuadraticRoots(eye, ray, offset, A, B, C, minT)) {
+    // Calculate normal
+    Point3D poi = eye + minT * ray;
+    Vector3D v1 = poi - Point3D(0.0, 0.0, 0.0);
+    Vector3D v2 = Vector3D(-1 * poi[1], poi[0], 0);
+    normal = v2.cross(v1);
+
+    pointFound = true;
+  }
+
+  if (checkCircleRoot(eye, ray, offset, 1.0, minT)) {
+    normal = Vector3D(0.0, 0.0, 1.0);
+    pointFound = true;
+  }
+
+  return pointFound;
+}
+
+bool Cone::checkPoint(const Point3D& poi)
+{
+  return (poi[2] >= 0.0 && poi[2] <= 1.0);
+}
+
+/* 
+  ********** Cylinder **********
+*/
+
+Cylinder::~Cylinder()
+{
+}
+
+bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                         double& minT, Vector3D& normal)
+{
+  double A = 0, B = 0, C = 0;
+
+  for (int i = 0; i < 2; i++) {
+    A += ray[i] * ray[i];
+    B += 2 * eye[i] * ray[i];
+    C += eye[i] * eye[i];
+  }
+  C -= 1.0;
+
+  bool pointFound = false;
+  if (checkQuadraticRoots(eye, ray, offset, A, B, C, minT)) {
+    // Calculate normal
+    Point3D poi = eye + minT * ray;
+    normal = Vector3D(poi[0], poi[1], 0.0);
+
+    pointFound = true;
+  }
+
+  if (checkCircleRoot(eye, ray, offset, 1.0, minT)) {
+    normal = Vector3D(0.0, 0.0, 1.0);
+    pointFound = true;
+  }
+
+  if (checkCircleRoot(eye, ray, offset, 0.0, minT)) {
+    normal = Vector3D(0.0, 0.0, -1.0);
+    pointFound = true;
+  }
+
+  return pointFound;
+}
+
+bool Cylinder::checkPoint(const Point3D& poi)
+{
+  return (poi[2] >= 0.0 && poi[2] <= 1.0);
 }

@@ -4,3 +4,6 @@
 
 # Executables
 rt
+
+# Vim
+*.swp
