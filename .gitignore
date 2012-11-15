@@ -1,0 +1,6 @@
+# Compiled Sources #
+*.o
+*.d
+
+# Executables
+rt
