@@ -14,17 +14,17 @@ SceneNode::~SceneNode()
 
 void SceneNode::rotate(char axis, double angle)
 {
-	set_transform(rotation(angle, axis) * m_trans);
+	set_transform(m_trans * rotation(angle, axis) );
 }
 
 void SceneNode::scale(const Vector3D& amount)
 {
-	set_transform(scaling(amount) * m_trans);
+	set_transform(m_trans * scaling(amount));
 }
 
 void SceneNode::translate(const Vector3D& amount)
 {
-	set_transform(translation(amount) * m_trans);
+	set_transform(m_trans * translation(amount));
 }
 
 bool SceneNode::is_joint() const
