@@ -3,7 +3,7 @@
 
 #include <string>
 #include "algebra.hpp"
-#include "scene.hpp"
+#include "scene_node.hpp"
 #include "light.hpp"
 
 void a4_render(// What to render

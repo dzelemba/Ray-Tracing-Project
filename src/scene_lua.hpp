@@ -2,8 +2,9 @@
 #define SCENE_LUA_HPP
 
 #include <string>
+#include "scene_node.hpp"
 #include "scene.hpp"
 
-bool run_lua(const std::string& filename);
+Scene* import_lua(const std::string& filename);
 
 #endif

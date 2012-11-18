@@ -1,14 +1,12 @@
 #include "a4.hpp"
 #include "image.hpp"
 
-static const int RAYS_PER_PIXEL = 16;
+static const int RAYS_PER_PIXEL = 1;
 
 Colour getBackground(const int x, const int y, const int height)
 {
   return Colour(0.0, 0.0, (double)y / height);
 }
-
-Colour
 
 void a4_render(// What to render
                SceneNode* root,
@@ -24,6 +22,8 @@ void a4_render(// What to render
                const std::list<Light*>& lights
                )
 {
+  std::cerr << "WARNING: Old Code Being Executed" << std::endl;
+
   // Copy view and up so we can normalize them.
   Vector3D nUp = up;
   nUp.normalize();

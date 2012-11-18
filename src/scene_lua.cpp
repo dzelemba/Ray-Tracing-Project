@@ -70,6 +70,12 @@
 // we can easily keep around the data, all we lose is the extra
 // pointers to it.
 
+// The "userdata" type for a scene. Objects of this type will be
+// allocated by Lua to represent nodes.
+struct gr_scene_ud {
+  Scene* scene;
+};
+
 // The "userdata" type for a node. Objects of this type will be
 // allocated by Lua to represent nodes.
 struct gr_node_ud {
@@ -99,6 +105,106 @@ void get_tuple(lua_State* L, int arg, T* data, int n)
     data[i - 1] = luaL_checknumber(L, -1);
     lua_pop(L, 1);
   }
+}
+
+// Render a scene
+extern "C"
+int gr_render_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* root = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
+  luaL_argcheck(L, root != 0, 1, "Root node expected");
+
+  const char* filename = luaL_checkstring(L, 2);
+
+  int width = luaL_checknumber(L, 3);
+  int height = luaL_checknumber(L, 4);
+
+  Point3D eye;
+  Vector3D view, up;
+  
+  get_tuple(L, 5, &eye[0], 3);
+  get_tuple(L, 6, &view[0], 3);
+  get_tuple(L, 7, &up[0], 3);
+
+  double fov = luaL_checknumber(L, 8);
+
+  double ambient_data[3];
+  get_tuple(L, 9, ambient_data, 3);
+  Colour ambient(ambient_data[0], ambient_data[1], ambient_data[2]);
+
+  luaL_checktype(L, 10, LUA_TTABLE);
+  int light_count = luaL_getn(L, 10);
+  
+  luaL_argcheck(L, light_count >= 1, 10, "Tuple of lights expected");
+  std::list<Light*> lights;
+  for (int i = 1; i <= light_count; i++) {
+    lua_rawgeti(L, 10, i);
+    gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.light");
+    luaL_argcheck(L, ldata != 0, 10, "Light expected");
+
+    lights.push_back(ldata->light);
+    lua_pop(L, 1);
+  }
+
+  a4_render(root->node, filename, width, height,
+            eye, view, up, fov,
+            ambient, lights);
+  
+  return 0;
+}
+
+// Create a scene
+extern "C"
+int gr_scene_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+
+  gr_scene_ud* data = (gr_scene_ud*)lua_newuserdata(L, sizeof(gr_scene_ud));
+  data->scene = 0;
+
+  gr_node_ud* root = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
+  luaL_argcheck(L, root != 0, 1, "Root node expected");
+
+  int width = luaL_checknumber(L, 2);
+  int height = luaL_checknumber(L, 3);
+
+  Point3D eye;
+  Vector3D view, up;
+  
+  get_tuple(L, 4, &eye[0], 3);
+  get_tuple(L, 5, &view[0], 3);
+  get_tuple(L, 6, &up[0], 3);
+
+  double fov = luaL_checknumber(L, 7);
+
+  double ambient_data[3];
+  get_tuple(L, 8, ambient_data, 3);
+  Colour ambient(ambient_data[0], ambient_data[1], ambient_data[2]);
+
+  luaL_checktype(L, 9, LUA_TTABLE);
+  int light_count = luaL_getn(L, 9);
+  
+  luaL_argcheck(L, light_count >= 1, 9, "Tuple of lights expected");
+  std::list<Light*> lights;
+  for (int i = 1; i <= light_count; i++) {
+    lua_rawgeti(L, 9, i);
+    gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.light");
+    luaL_argcheck(L, ldata != 0, 9, "Light expected");
+
+    lights.push_back(ldata->light);
+    lua_pop(L, 1);
+  }
+
+  data->scene = new Scene(root->node, width, height,
+                          eye, view, up, fov,
+                          ambient, lights);
+ 
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
 }
 
 // Create a node
@@ -353,53 +459,7 @@ int gr_light_cmd(lua_State* L)
   return 1;
 }
 
-// Render a scene
-extern "C"
-int gr_render_cmd(lua_State* L)
-{
-  GRLUA_DEBUG_CALL;
-  
-  gr_node_ud* root = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
-  luaL_argcheck(L, root != 0, 1, "Root node expected");
 
-  const char* filename = luaL_checkstring(L, 2);
-
-  int width = luaL_checknumber(L, 3);
-  int height = luaL_checknumber(L, 4);
-
-  Point3D eye;
-  Vector3D view, up;
-  
-  get_tuple(L, 5, &eye[0], 3);
-  get_tuple(L, 6, &view[0], 3);
-  get_tuple(L, 7, &up[0], 3);
-
-  double fov = luaL_checknumber(L, 8);
-
-  double ambient_data[3];
-  get_tuple(L, 9, ambient_data, 3);
-  Colour ambient(ambient_data[0], ambient_data[1], ambient_data[2]);
-
-  luaL_checktype(L, 10, LUA_TTABLE);
-  int light_count = luaL_getn(L, 10);
-  
-  luaL_argcheck(L, light_count >= 1, 10, "Tuple of lights expected");
-  std::list<Light*> lights;
-  for (int i = 1; i <= light_count; i++) {
-    lua_rawgeti(L, 10, i);
-    gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.light");
-    luaL_argcheck(L, ldata != 0, 10, "Light expected");
-
-    lights.push_back(ldata->light);
-    lua_pop(L, 1);
-  }
-
-  a4_render(root->node, filename, width, height,
-            eye, view, up, fov,
-            ambient, lights);
-  
-  return 0;
-}
 
 // Create a material
 extern "C"
@@ -573,6 +633,7 @@ int gr_node_gc_cmd(lua_State* L)
 // If you want to add a new non-member function, add it here.
 static const luaL_reg grlib_functions[] = {
   {"node", gr_node_cmd},
+  {"scene", gr_scene_cmd},
   {"sphere", gr_sphere_cmd},
   {"cone", gr_cone_cmd},
   {"cylinder", gr_cylinder_cmd},
@@ -613,7 +674,7 @@ static const luaL_reg grlib_node_methods[] = {
 
 // This function calls the lua interpreter to define the scene and
 // raytrace it as appropriate.
-bool run_lua(const std::string& filename)
+Scene* import_lua(const std::string& filename)
 {
   GRLUA_DEBUG("Importing scene from " << filename);
   
@@ -625,8 +686,8 @@ bool run_lua(const std::string& filename)
   // Load some base library
   luaL_openlibs(L);
 
-
   GRLUA_DEBUG("Setting up our functions");
+
 
   // Set up the metatable for gr.node
   luaL_newmetatable(L, "gr.node");
@@ -642,14 +703,27 @@ bool run_lua(const std::string& filename)
 
   GRLUA_DEBUG("Parsing the scene");
   // Now parse the actual scene
-  if (luaL_loadfile(L, filename.c_str()) || lua_pcall(L, 0, 0, 0)) {
+  if (luaL_loadfile(L, filename.c_str()) || lua_pcall(L, 0, 1, 0)) {
     std::cerr << "Error loading " << filename << ": " << lua_tostring(L, -1) << std::endl;
     return false;
   }
+
+  GRLUA_DEBUG("Getting back the node");
+
+  // Pull the returned node off the stack
+  gr_scene_ud* data = (gr_scene_ud*)luaL_checkudata(L, -1, "gr.node");
+  if (!data) {
+    std::cerr << "Error loading " << filename << ": Must return the scene." << std::endl;
+    return 0;
+  }
+
+  // Store it
+  Scene* scene = data->scene;
+
   GRLUA_DEBUG("Closing the interpreter");
   
   // Close the interpreter, free up any resources not needed
   lua_close(L);
 
-  return true;
+  return scene;
 }
