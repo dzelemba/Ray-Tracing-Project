@@ -5,11 +5,7 @@
 
 int main(int argc, char** argv)
 {
-  std::string filename = "scene.lua";
-  if (argc >= 2) {
-    filename = argv[1];
-  }
-
+  std::string filename = argv[argc - 1];
   std::string outfile = filename.substr(0, filename.find_first_of('.')).append(".png");
 
   Scene* scene = import_lua(filename);
@@ -18,7 +14,19 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  StochasticRenderer renderer(scene);
-  renderer.render(outfile);
+  Renderer* renderer = NULL;
+  if (argc >= 3) {
+    for (int i = 1; i < argc - 1; i++) {
+      if (std::string(argv[i]) == "-s") {
+        renderer = new StochasticRenderer(scene);
+      }
+    }
+  }
+  if (renderer == NULL) {
+    renderer = new BasicRenderer(scene);
+  }
+
+  renderer->render(outfile);
+  delete renderer;
 }
 
