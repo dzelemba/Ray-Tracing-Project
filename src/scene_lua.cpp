@@ -401,15 +401,21 @@ int gr_material_cmd(lua_State* L)
   get_tuple(L, 2, ks, 3);
 
   double shininess = luaL_checknumber(L, 3);
-  double reflection = 0;
+  double refraction = 0.0;
+  double transparency = 0.0;
 
-  if (numArgs > 3) {
-    reflection = luaL_checknumber(L, 4);
+  if (numArgs == 5) {
+    transparency = luaL_checknumber(L, 5);
+    refraction = luaL_checknumber(L, 4);
+
+    if (refraction == 1.0) {
+      std::cerr << "Refractive Index of 1.0 Not Supported" << std::endl;
+    }
   }
 
-  data->material = new PhongMaterial(Colour(kd[0], kd[1], kd[2]),
-                                     Colour(ks[0], ks[1], ks[2]),
-                                     shininess, reflection);
+  data->material = new Material(Colour(kd[0], kd[1], kd[2]),
+                                Colour(ks[0], ks[1], ks[2]),
+                                shininess, transparency, refraction);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);

@@ -4,6 +4,7 @@
 #include "algebra.hpp"
 #include "scene_node.hpp"
 #include "light.hpp"
+#include "mesh.hpp"
 
 class Scene {
  public:
@@ -15,7 +16,12 @@ class Scene {
         const std::list<Light*> lights);
 
   bool intersect(const double dx, const double dy, Colour &c) const;
+
+  // Returns background colour based on screen coordinates.
   Colour getBackground(const int x, const int y) const;
+
+  // Returns backgroun colour based on ray that missed entire scene.
+  Colour getBackground(const Point3D& eye, const Vector3D& ray) const;
 
   // Image Size
   const int height;
@@ -35,6 +41,9 @@ class Scene {
   Vector3D left;
   const double fov;
   const double screenDist;
+
+  int backgroundDist;
+  Mesh background;
 };
 
 #endif

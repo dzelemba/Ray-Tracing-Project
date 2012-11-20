@@ -51,6 +51,13 @@ bool SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double 
   return false;
 }
 
+const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray,
+                                         const double offset, double& minT) const
+{
+  Vector3D normal;
+  return intersect(eye, ray, offset, normal, minT);
+}
+
 const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                                          Point3D& poi, Vector3D& normal) const
 {
@@ -89,6 +96,8 @@ const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray
   ************ GeometryNode ****************
 */
 
+static const double epsilon = 0.0001;
+
 GeometryNode::GeometryNode(const std::string& name, Primitive* primitive)
   : SceneNode(name),
     m_primitive(primitive)
@@ -116,44 +125,124 @@ const GeometryNode* GeometryNode::intersect(const Point3D& eye, const Vector3D& 
 }
 
 Colour GeometryNode::getColour(const Point3D& eye, const Point3D& poi, const Vector3D& normal,
-                               int recursiveDepth) const
+                               const double refractiveIndex, int recursiveDepth) const
 {
-  // Normalize the normal
-  Vector3D norm = normal;
-  norm.normalize();
+  Colour c(0.0);
 
-   // First add ambient light.
-  Colour c = m_material->getAmbient(m_scene->ambient);
+  // Normalize the normal
+  // Check if we're inside an object and flip the normal if we are.
+  Vector3D norm =  refractiveIndex != 1.0 ? -1 * normal : normal;
+  norm.normalize();
 
   Vector3D viewDirection = eye - poi;
   viewDirection.normalize();
 
-  // Mirror reflections
-  double mirrorRefl = m_material->getReflection();
-  if (mirrorRefl != 0 && recursiveDepth < 5) {
-    Vector3D mirrorDirection = -1 * viewDirection + 2 * viewDirection.dot(norm) * norm;
-    Point3D objPOI;
-    Vector3D objNormal;
-    const GeometryNode* obj = m_scene->root->intersect(poi, mirrorDirection, 0.1,  objPOI, objNormal);
+  // Add contribution of reflection + refraction.
+  double transparency = m_material->m_transparency;
+  if (transparency > 0) {
+    double reflectance = getReflectiveRatio(viewDirection, norm, refractiveIndex);
+    double transmittance = 1.0 - reflectance;
 
-    Colour reflectionColour(0.0);  
-    if (obj) {
-      reflectionColour = obj->getColour(poi, objPOI, objNormal, recursiveDepth + 1);
+    Colour c1(0.0);
+    if (reflectance > epsilon) {
+     c1 = c1 + reflectance * reflectionContribution(viewDirection, norm, poi, refractiveIndex, recursiveDepth);
     }
 
-    c = c + mirrorRefl * reflectionColour;
+    if (transmittance > epsilon) {
+      c1 = c1 +  transmittance * refractionContribution(viewDirection, norm, poi,
+                                                        refractiveIndex, recursiveDepth);  
+    }
+
+    c = c + transparency * c1;
+  }
+
+  // Now add contributions of all light sources.
+  double materialCoeff = 1.0 - transparency;
+  if (materialCoeff > 0) {
+    c = c + materialCoeff * getLightContribution(poi, viewDirection, norm);
   }
   
-  // Now add contributions of all light sources.
-  c = c + (1 - mirrorRefl) * getLightContribution(poi, viewDirection, norm);
-
   return c;
+}
+
+double GeometryNode::getReflectiveRatio(const Vector3D& viewDirection, const Vector3D& normal,
+                                        const double refractiveIndex) const
+{
+  double n1 = refractiveIndex;
+  double n2 = m_material->m_refractiveIndex;
+
+  // n2 == 0 signifies fully reflective material
+  if (n2 == 0) {
+    return 1.0;
+  }
+
+  double cosInc = viewDirection.dot(normal); 
+  double indexRatio = n1 / n2; 
+  double sinT2 = indexRatio * indexRatio * (1.0 - cosInc * cosInc);
+
+  // Check for Total Internal Reflection
+  if (sinT2 > 1.0) {
+    return 1.0; 
+  }
+
+  // Use Fresnel equation to determine the ratio between reflectance and transmittance.
+  double cosT = sqrt(1.0 - sinT2);
+  double rOrth = (n1 * cosInc - n2 * cosT) / (n1 * cosInc + n2 * cosT);
+  double rPar = (n2 * cosInc - n1 * cosT) / (n2 * cosInc + n1 * cosT);
+
+  return (rOrth * rOrth + rPar * rPar) / 2.0;
+}
+
+Colour GeometryNode::reflectionContribution(const Vector3D& viewDirection, const Vector3D& normal,
+                                            const Point3D& poi, const double refractiveIndex,
+                                            int recursiveDepth) const
+{
+  if (recursiveDepth < 5) {
+    Vector3D mirrorDirection = -1 * viewDirection + 2 * viewDirection.dot(normal) * normal;
+    Point3D objPOI;
+    Vector3D objNormal;
+    const GeometryNode* obj = m_scene->root->intersect(poi, mirrorDirection, epsilon,  objPOI, objNormal);
+
+    if (obj) {
+      return obj->getColour(poi, objPOI, objNormal, refractiveIndex, recursiveDepth + 1);
+    }
+  }
+
+  return Colour(0.0);
+}
+
+// Assumptions:
+//  - No refractive objects inside other refractive objects.
+//  - Materials can't have refractiveIndex = 1.
+//  - No single plane refractive objects
+Colour GeometryNode::refractionContribution(const Vector3D& viewDirection, const Vector3D& normal,
+                                            const Point3D& poi, const double refractiveIndex,
+                                            int recursiveDepth) const
+{
+  double n1 = refractiveIndex;
+  double n2 = m_material->m_refractiveIndex;
+  double cosInc = viewDirection.dot(normal); 
+  double indexRatio = n1 / n2; 
+  double sinT2 = indexRatio * indexRatio * (1.0 - cosInc * cosInc);
+
+  Vector3D transDirection = -indexRatio * viewDirection +
+                             (indexRatio * cosInc - sqrt(1.0 - sinT2)) * normal;
+  Point3D objPOI;
+  Vector3D objNormal;
+  const GeometryNode* obj = m_scene->root->intersect(poi, transDirection, epsilon, objPOI, objNormal);
+  
+  if (obj) {
+    return obj->getColour(poi, objPOI, objNormal, n1 == 1.0 ? n2 : 1.0, recursiveDepth);
+  } else {
+    return m_scene->getBackground(poi, transDirection);
+  }
 }
 
 Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& viewDirection, 
                                           const Vector3D& normal) const
 {
-  Colour c(0.0);
+  // First add ambient light.
+  Colour c = m_material->getAmbient(m_scene->ambient);
 
   // Using Phong Lighting Model
   for (std::list<Light*>::const_iterator it = m_scene->lights.begin(); it != m_scene->lights.end(); it++) {
@@ -164,7 +253,14 @@ Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& vi
     lightDirection.normalize();
 
     // Check if we get a contribution from this light (i.e. check if any objects are in the way)
-    if (m_scene->root->intersect(poi, lightDirection, 0.001)) {
+    // Ignore transparent objects.
+    // TODO: Add supprt for non-fully transparent objects.
+    double t = DBL_MAX;
+    const GeometryNode* obj = m_scene->root->intersect(poi, lightDirection, epsilon, t);
+    while (obj && obj->m_material->m_transparency != 0) {
+      obj = m_scene->root->intersect(poi, lightDirection, t + epsilon, t);
+    }
+    if (obj) {
       continue;
     }
 

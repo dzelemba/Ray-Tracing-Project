@@ -63,7 +63,8 @@ bool Mesh::checkPoint(const Face& f, const Vector3D& normal, const Point3D& p) c
   return true;
 }
 
-bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, double offset, double& minT, Vector3D& normal)
+bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                     double& minT, Vector3D& normal) const
 {
   // Draw bouding sphere instead?
   // return m_boundingSphere.intersect(eye, ray, offset, minT, normal);
@@ -77,8 +78,8 @@ bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, double offset, dou
 
   bool found = false;
 
-  std::vector<Face>::iterator fIt = m_faces.begin();
-  std::vector<Plane>::iterator pIt = m_planes.begin();
+  std::vector<Face>::const_iterator fIt = m_faces.begin();
+  std::vector<Plane>::const_iterator pIt = m_planes.begin();
   for ( ; fIt != m_faces.end() && pIt != m_planes.end(); fIt++, pIt++) {
     double t = pIt->normal.dot(pIt->Q - eye) / ray.dot(pIt->normal);
     
@@ -91,6 +92,20 @@ bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, double offset, dou
 
   return found;
 }
+
+bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offset, Point3D& poi) const
+{
+  double t = DBL_MAX; 
+  Vector3D normal;
+
+  if (intersect(eye, ray, offset, t, normal)) {
+    poi = eye + t * ray;
+  
+    return true;
+  }
+  return false; 
+}
+
 
 std::ostream& operator<<(std::ostream& out, const Mesh& mesh)
 {

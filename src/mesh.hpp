@@ -19,7 +19,9 @@ public:
 
   typedef std::vector<int> Face;
   
-  bool intersect(const Point3D& eye, const Vector3D& ray, double offset, double& minT, Vector3D& normal);
+  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset, Point3D& poi) const;
+  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                 double& minT, Vector3D& normal) const;
 private:
   std::vector<Point3D> m_verts;
   std::vector<Face> m_faces;

@@ -8,7 +8,7 @@ Primitive::~Primitive()
 
 bool Primitive::checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
                                     const double A, const double B, const double C,
-                                    double& minT)
+                                    double& minT) const
 {
   bool pointFound = false;
 
@@ -28,7 +28,7 @@ bool Primitive::checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, con
 }
  
 bool Primitive::checkCircleRoot(const Point3D& eye, const Vector3D& ray, const double minValue,
-                                const double plane, double& minT)
+                                const double plane, double& minT) const
 {
   double t = (plane - eye[2]) / ray[2];
   Point3D poi = eye + t * ray;
@@ -45,7 +45,7 @@ bool Primitive::checkCircleRoot(const Point3D& eye, const Vector3D& ray, const d
   return false;
 }
 
-bool Primitive::checkPoint(const Point3D& poi)
+bool Primitive::checkPoint(const Point3D& poi) const
 {
   (void) poi; // Silence Compiler Warnings
 
@@ -61,7 +61,7 @@ Sphere::~Sphere()
 }
 
 bool Sphere::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                       double& minT, Vector3D& normal)
+                       double& minT, Vector3D& normal) const
 {
   return m_unitSphere.intersect(eye, ray, offset, minT, normal);
 }
@@ -75,7 +75,7 @@ Cube::~Cube()
 }
 
 bool Cube::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                     double& minT, Vector3D& normal)
+                     double& minT, Vector3D& normal) const
 {
   return m_unitCube.intersect(eye, ray, offset, minT, normal);
 }
@@ -88,7 +88,7 @@ NonhierSphere::~NonhierSphere()
 }
 
 bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                              double& minT, Vector3D& normal)
+                              double& minT, Vector3D& normal) const 
 {
   double A = 0; 
   double B = 0;
@@ -124,7 +124,7 @@ NonhierBox::~NonhierBox()
 
 // Face: 1 - x, 2 - y, 3 - z
 // NormalDir: 1 - Left, 2 - Right
-bool NonhierBox::checkPoint(Point3D p, int face, double t, double& minT, Vector3D& normal, int normalDir)
+bool NonhierBox::checkPoint(Point3D p, int face, double t, double& minT, Vector3D& normal, int normalDir) const
 {
   bool inFace = true;
 
@@ -149,7 +149,7 @@ bool NonhierBox::checkPoint(Point3D p, int face, double t, double& minT, Vector3
 }
 
 bool NonhierBox::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                           double& minT, Vector3D& normal)
+                           double& minT, Vector3D& normal) const
 {
   // Since Nonhier box's are aligned with MCS, the plane equations become very simple.
   // Just {x,y,z} = {m_pos[0] [+ m_size], m_pos[1] [+ m_size], m_pos[2] [+ m_size]}.
@@ -181,7 +181,7 @@ Cone::~Cone()
 }
 
 bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                     double& minT, Vector3D& normal)
+                     double& minT, Vector3D& normal) const
 {
   double A = 0, B = 0, C = 0;
 
@@ -211,7 +211,7 @@ bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offse
   return pointFound;
 }
 
-bool Cone::checkPoint(const Point3D& poi)
+bool Cone::checkPoint(const Point3D& poi) const
 {
   return (poi[2] >= 0.0 && poi[2] <= 1.0);
 }
@@ -225,7 +225,7 @@ Cylinder::~Cylinder()
 }
 
 bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                         double& minT, Vector3D& normal)
+                         double& minT, Vector3D& normal) const
 {
   double A = 0, B = 0, C = 0;
 
@@ -258,7 +258,7 @@ bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double o
   return pointFound;
 }
 
-bool Cylinder::checkPoint(const Point3D& poi)
+bool Cylinder::checkPoint(const Point3D& poi) const
 {
   return (poi[2] >= 0.0 && poi[2] <= 1.0);
 }

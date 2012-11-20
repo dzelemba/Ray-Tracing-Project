@@ -7,15 +7,15 @@ class Primitive {
  public:
   virtual ~Primitive();
   virtual bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                         double& minT, Vector3D& normal) = 0;
+                         double& minT, Vector3D& normal) const = 0;
  protected:
   bool checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
                            const double A, const double B, const double C,
-                           double& minT);
+                           double& minT) const;
   bool checkCircleRoot(const Point3D& eye, const Vector3D& ray, const double minValue, const double plane,
-                       double& minT);
+                       double& minT) const;
 
-  virtual bool checkPoint(const Point3D& poi);
+  virtual bool checkPoint(const Point3D& poi) const;
 };
 
 class NonhierSphere : public Primitive {
@@ -27,7 +27,7 @@ public:
   virtual ~NonhierSphere();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal);
+                 double& minT, Vector3D& normal) const;
 private:
   Point3D m_pos;
   double m_radius;
@@ -43,14 +43,14 @@ public:
   virtual ~NonhierBox();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal);
+                 double& minT, Vector3D& normal) const;
 private:
   Point3D m_pos;
   double m_size;
 
   // Face: 1 - x, 2 - y, 3 - z
   // NormalDir: 1 - Left, 2 - Right
-  bool checkPoint(Point3D p, int face, double t, double& minT, Vector3D& normal, int normalDir);
+  bool checkPoint(Point3D p, int face, double t, double& minT, Vector3D& normal, int normalDir) const;
 };
 
 class Sphere : public Primitive {
@@ -61,7 +61,7 @@ public:
   virtual ~Sphere();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal);
+                 double& minT, Vector3D& normal) const;
 private:
   NonhierSphere m_unitSphere;
 };
@@ -77,7 +77,7 @@ class Cube : public Primitive {
   virtual ~Cube();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal);
+                 double& minT, Vector3D& normal) const;
  private:
   NonhierBox m_unitCube;
 };
@@ -91,9 +91,9 @@ class Cone : public Primitive {
   virtual ~Cone();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal);
+                 double& minT, Vector3D& normal) const;
  protected:
-  bool checkPoint(const Point3D& poi);
+  bool checkPoint(const Point3D& poi) const;
 };
 
 /*
@@ -106,8 +106,8 @@ class Cylinder : public Primitive {
   virtual ~Cylinder();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal);
+                 double& minT, Vector3D& normal) const;
  protected:
-  bool checkPoint(const Point3D& poi);
+  bool checkPoint(const Point3D& poi) const;
 };
 #endif

@@ -51,6 +51,8 @@ public:
   // Also gives point of intersection and normal.
   bool intersect(const Point3D& eye, const Vector3D& ray, double offset) const;
   bool intersect(const Point3D& eye, const Vector3D& ray, double offset, Colour& c) const;
+  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray,
+                                const double offset, double& minT) const;
   const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                                 Point3D& poi, Vector3D& normal) const;
   
@@ -96,14 +98,22 @@ public:
   const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                                 Vector3D& normal, double& minT) const;
 
-  Colour getColour(const Point3D& eye, const Point3D& poi, const Vector3D& normal, int recursiveDepth = 0) const;
+  Colour getColour(const Point3D& eye, const Point3D& poi, const Vector3D& normal,
+                   const double refractiveIndex = 1.0, int recursiveDepth = 0) const;
 
 protected:
   Material* m_material;
   Primitive* m_primitive;
 
 private:
+  double getReflectiveRatio(const Vector3D& viewDirection, const Vector3D& normal,
+                            const double refractiveIndex) const;
+  Colour reflectionContribution(const Vector3D& viewDirection, const Vector3D& normal, const Point3D& poi,
+                                const double refractiveIndex, int recursiveDepth) const;
+  Colour refractionContribution(const Vector3D& viewDirection, const Vector3D& normal, const Point3D& poi,
+                                const double refractiveIndex, int recursiveDepth) const;
   Colour getLightContribution(const Point3D& poi, const Vector3D& viewDirection, const Vector3D& normal) const;
+
 };
 
 #endif
