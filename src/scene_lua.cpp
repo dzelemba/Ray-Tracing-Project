@@ -43,7 +43,6 @@
 #include <vector>
 #include "lua488.hpp"
 #include "light.hpp"
-#include "a4.hpp"
 #include "mesh.hpp"
 
 // Uncomment the following line to enable debugging messages
@@ -105,54 +104,6 @@ void get_tuple(lua_State* L, int arg, T* data, int n)
     data[i - 1] = luaL_checknumber(L, -1);
     lua_pop(L, 1);
   }
-}
-
-// Render a scene
-extern "C"
-int gr_render_cmd(lua_State* L)
-{
-  GRLUA_DEBUG_CALL;
-  
-  gr_node_ud* root = (gr_node_ud*)luaL_checkudata(L, 1, "gr.node");
-  luaL_argcheck(L, root != 0, 1, "Root node expected");
-
-  const char* filename = luaL_checkstring(L, 2);
-
-  int width = luaL_checknumber(L, 3);
-  int height = luaL_checknumber(L, 4);
-
-  Point3D eye;
-  Vector3D view, up;
-  
-  get_tuple(L, 5, &eye[0], 3);
-  get_tuple(L, 6, &view[0], 3);
-  get_tuple(L, 7, &up[0], 3);
-
-  double fov = luaL_checknumber(L, 8);
-
-  double ambient_data[3];
-  get_tuple(L, 9, ambient_data, 3);
-  Colour ambient(ambient_data[0], ambient_data[1], ambient_data[2]);
-
-  luaL_checktype(L, 10, LUA_TTABLE);
-  int light_count = luaL_getn(L, 10);
-  
-  luaL_argcheck(L, light_count >= 1, 10, "Tuple of lights expected");
-  std::list<Light*> lights;
-  for (int i = 1; i <= light_count; i++) {
-    lua_rawgeti(L, 10, i);
-    gr_light_ud* ldata = (gr_light_ud*)luaL_checkudata(L, -1, "gr.light");
-    luaL_argcheck(L, ldata != 0, 10, "Light expected");
-
-    lights.push_back(ldata->light);
-    lua_pop(L, 1);
-  }
-
-  a4_render(root->node, filename, width, height,
-            eye, view, up, fov,
-            ambient, lights);
-  
-  return 0;
 }
 
 // Create a scene
@@ -218,33 +169,6 @@ int gr_node_cmd(lua_State* L)
 
   const char* name = luaL_checkstring(L, 1);
   data->node = new SceneNode(name);
-
-  luaL_getmetatable(L, "gr.node");
-  lua_setmetatable(L, -2);
-
-  return 1;
-}
-
-// Create a joint node
-extern "C"
-int gr_joint_cmd(lua_State* L)
-{
-  GRLUA_DEBUG_CALL;
-  
-  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
-  data->node = 0;
-
-  const char* name = luaL_checkstring(L, 1);
-  JointNode* node = new JointNode(name);
-
-  double x[3], y[3];
-  get_tuple(L, 2, x, 3);
-  get_tuple(L, 3, y, 3);
-
-  node->set_joint_x(x[0], x[1], x[2]);
-  node->set_joint_y(y[0], y[1], y[2]);
-  
-  data->node = node;
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -637,7 +561,6 @@ static const luaL_reg grlib_functions[] = {
   {"sphere", gr_sphere_cmd},
   {"cone", gr_cone_cmd},
   {"cylinder", gr_cylinder_cmd},
-  {"joint", gr_joint_cmd},
   {"material", gr_material_cmd},
   // New for assignment 4
   {"cube", gr_cube_cmd},
@@ -645,7 +568,6 @@ static const luaL_reg grlib_functions[] = {
   {"nh_box", gr_nh_box_cmd},
   {"mesh", gr_mesh_cmd},
   {"light", gr_light_cmd},
-  {"render", gr_render_cmd},
   {0, 0}
 };
 
@@ -668,7 +590,6 @@ static const luaL_reg grlib_node_methods[] = {
   {"scale", gr_node_scale_cmd},
   {"rotate", gr_node_rotate_cmd},
   {"translate", gr_node_translate_cmd},
-  {"render", gr_render_cmd},
   {0, 0}
 };
 

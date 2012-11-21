@@ -21,9 +21,13 @@ class Scene {
   const int height;
   const int width;
 
- private:
   const SceneNode* root;
 
+  // Lighting parameters
+  const Colour ambient;
+  const std::list<Light*> lights;
+
+ private:
   // Viewing parameters
   const Point3D eye;
   Vector3D view;
@@ -31,11 +35,6 @@ class Scene {
   Vector3D left;
   const double fov;
   const double screenDist;
-
-  // Lighting parameters
-  const Colour ambient;
-  const std::list<Light*> lights;
-  
 };
 
 #endif

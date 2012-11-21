@@ -2,6 +2,9 @@
 #include <iostream>
 #include <cfloat>
 #include "transforms.hpp"
+#include "scene.hpp"
+
+const Scene* SceneNode::m_scene = NULL;
 
 SceneNode::SceneNode(const std::string& name)
   : m_name(name)
@@ -27,11 +30,6 @@ void SceneNode::translate(const Vector3D& amount)
 	set_transform(m_trans * translation(amount));
 }
 
-bool SceneNode::is_joint() const
-{
-  return false;
-}
- 
 bool SceneNode::intersect(const Point3D& eye, const Vector3D& ray, double offset) const
 {
   Vector3D normal;
@@ -39,21 +37,22 @@ bool SceneNode::intersect(const Point3D& eye, const Vector3D& ray, double offset
   return (intersect(eye, ray, offset, poi, normal) != NULL);
 }
 
-bool SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const Colour& ambient, const std::list<Light*>& lights, double offset, Colour& c) const
+bool SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double offset, Colour& c) const
 {
   Vector3D normal;
   Point3D poi;
 
   const GeometryNode* retVal = intersect(eye, ray, offset, poi, normal);
   if (retVal) {
-    c = retVal->getColour(this, eye, poi, normal, ambient, lights);
+    c = retVal->getColour(eye, poi, normal);
     return true;
   }
 
   return false;
 }
 
-const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray, double offset, Point3D& poi, Vector3D& normal) const
+const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                         Point3D& poi, Vector3D& normal) const
 {
   double minT = DBL_MAX;
   
@@ -65,7 +64,8 @@ const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray
   return retVal;
 }
 
-const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray, double offset, Vector3D& normal, double& minT) const
+const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                         Vector3D& normal, double& minT) const
 {
   const Point3D transEye = m_invtrans * eye;
   const Vector3D transRay = m_invtrans * ray; // Hints say we should be normalizing this everytime?
@@ -85,38 +85,6 @@ const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray
   return retVal;
 }
 
-/* 
-  ******** Joint Node *************
-*/
-
-JointNode::JointNode(const std::string& name)
-  : SceneNode(name)
-{
-}
-
-JointNode::~JointNode()
-{
-}
-
-bool JointNode::is_joint() const
-{
-  return true;
-}
-
-void JointNode::set_joint_x(double min, double init, double max)
-{
-  m_joint_x.min = min;
-  m_joint_x.init = init;
-  m_joint_x.max = max;
-}
-
-void JointNode::set_joint_y(double min, double init, double max)
-{
-  m_joint_y.min = min;
-  m_joint_y.init = init;
-  m_joint_y.max = max;
-}
-
 /*
   ************ GeometryNode ****************
 */
@@ -132,7 +100,8 @@ GeometryNode::~GeometryNode()
 }
 
 
-const GeometryNode* GeometryNode::intersect(const Point3D& eye, const Vector3D& ray, double offset, Vector3D& normal, double& minT) const
+const GeometryNode* GeometryNode::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                            Vector3D& normal, double& minT) const
 {
   const Point3D transEye = m_invtrans * eye;
   const Vector3D transRay = m_invtrans * ray;
@@ -146,16 +115,15 @@ const GeometryNode* GeometryNode::intersect(const Point3D& eye, const Vector3D& 
 
 }
 
-Colour GeometryNode::getColour(const SceneNode* rootNode, 
-                               const Point3D& eye, const Point3D& poi, const Vector3D& normal,
-                               const Colour& ambient, const std::list<Light*>& lights, int recursiveDepth) const
+Colour GeometryNode::getColour(const Point3D& eye, const Point3D& poi, const Vector3D& normal,
+                               int recursiveDepth) const
 {
   // Normalize the normal
   Vector3D norm = normal;
   norm.normalize();
 
    // First add ambient light.
-  Colour c = m_material->getAmbient(ambient);
+  Colour c = m_material->getAmbient(m_scene->ambient);
 
   Vector3D viewDirection = eye - poi;
   viewDirection.normalize();
@@ -166,29 +134,29 @@ Colour GeometryNode::getColour(const SceneNode* rootNode,
     Vector3D mirrorDirection = -1 * viewDirection + 2 * viewDirection.dot(norm) * norm;
     Point3D objPOI;
     Vector3D objNormal;
-    const GeometryNode* obj = rootNode->intersect(poi, mirrorDirection, 0.1,  objPOI, objNormal);
+    const GeometryNode* obj = m_scene->root->intersect(poi, mirrorDirection, 0.1,  objPOI, objNormal);
 
     Colour reflectionColour(0.0);  
     if (obj) {
-      reflectionColour = obj->getColour(rootNode, poi, objPOI, objNormal, ambient, lights, recursiveDepth + 1);
+      reflectionColour = obj->getColour(poi, objPOI, objNormal, recursiveDepth + 1);
     }
 
     c = c + mirrorRefl * reflectionColour;
   }
   
   // Now add contributions of all light sources.
-  c = c + (1 - mirrorRefl) * getLightContribution(rootNode, poi, viewDirection, norm, lights);
+  c = c + (1 - mirrorRefl) * getLightContribution(poi, viewDirection, norm);
 
   return c;
 }
 
-Colour GeometryNode::getLightContribution(const SceneNode* rootNode, const Point3D& poi, const Vector3D& viewDirection, 
-                                          const Vector3D& normal, const std::list<Light*>& lights) const
+Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& viewDirection, 
+                                          const Vector3D& normal) const
 {
   Colour c(0.0);
 
   // Using Phong Lighting Model
-  for (std::list<Light*>::const_iterator it = lights.begin(); it != lights.end(); it++) {
+  for (std::list<Light*>::const_iterator it = m_scene->lights.begin(); it != m_scene->lights.end(); it++) {
     Light* light = (*it);
 
     Vector3D lightDirection = light->position - poi; // Note this needs to point towards the light.
@@ -196,7 +164,7 @@ Colour GeometryNode::getLightContribution(const SceneNode* rootNode, const Point
     lightDirection.normalize();
 
     // Check if we get a contribution from this light (i.e. check if any objects are in the way)
-    if (rootNode->intersect(poi, lightDirection, 0.001)) {
+    if (m_scene->root->intersect(poi, lightDirection, 0.001)) {
       continue;
     }
 

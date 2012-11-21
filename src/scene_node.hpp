@@ -8,6 +8,7 @@
 #include "light.hpp"
 
 class GeometryNode;
+class Scene;
 
 class SceneNode {
 public:
@@ -45,21 +46,22 @@ public:
   void scale(const Vector3D& amount);
   void translate(const Vector3D& amount);
 
-  // Returns true if and only if this node is a JointNode
-  virtual bool is_joint() const;
-
   // Intersect ray with the scene
   // Returns GeometryNode that is closest to eye. 
   // Also gives point of intersection and normal.
   bool intersect(const Point3D& eye, const Vector3D& ray, double offset) const;
-  bool intersect(const Point3D& eye, const Vector3D& ray, const Colour& ambient, const std::list<Light*>& lights, double offset, Colour& c) const;
-  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, double offset, Point3D& poi, Vector3D& normal) const;
+  bool intersect(const Point3D& eye, const Vector3D& ray, double offset, Colour& c) const;
+  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                Point3D& poi, Vector3D& normal) const;
   
   std::string m_name;
+
+  static void setScene(const Scene* scene) { m_scene = scene; }
 protected:
   // Actual function used for the recursion.
   // Keeps track of the minimum t found so far to determine which object to return.
-  virtual const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, double offest, Vector3D& normal, double& minT) const;
+  virtual const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offest,
+                                        Vector3D& normal, double& minT) const;
 
   // Useful for picking
   int m_id;
@@ -71,26 +73,9 @@ protected:
   // Hierarchy
   typedef std::list<SceneNode*> ChildList;
   ChildList m_children;
-};
 
-class JointNode : public SceneNode {
-public:
-  JointNode(const std::string& name);
-  virtual ~JointNode();
-
-  virtual bool is_joint() const;
-
-  void set_joint_x(double min, double init, double max);
-  void set_joint_y(double min, double init, double max);
-
-  struct JointRange {
-    double min, init, max;
-  };
-
-  
-protected:
-
-  JointRange m_joint_x, m_joint_y;
+  // Scene this node is in.
+  static const Scene* m_scene;
 };
 
 class GeometryNode : public SceneNode {
@@ -108,18 +93,17 @@ public:
   }
 
   // Overwritten to do actual intersection
-  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, double offset, Vector3D& normal, double& minT) const;
+  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                Vector3D& normal, double& minT) const;
 
-  Colour getColour(const SceneNode* rootNode, 
-                   const Point3D& eye, const Point3D& poi, const Vector3D& normal,
-                   const Colour& ambient, const std::list<Light*>& lights, int recursiveDepth = 0) const;
+  Colour getColour(const Point3D& eye, const Point3D& poi, const Vector3D& normal, int recursiveDepth = 0) const;
+
 protected:
   Material* m_material;
   Primitive* m_primitive;
 
 private:
-  Colour getLightContribution(const SceneNode* rootNode, const Point3D& poi, const Vector3D& viewDirection,
-                              const Vector3D& normal, const std::list<Light*>& lights) const;
+  Colour getLightContribution(const Point3D& poi, const Vector3D& viewDirection, const Vector3D& normal) const;
 };
 
 #endif
