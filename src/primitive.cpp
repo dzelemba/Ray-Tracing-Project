@@ -91,6 +91,11 @@ bool Cube::intersect(const Point3D& eye, const Vector3D& ray, const double offse
   return m_unitCube.intersect(eye, ray, offset, minT, normal);
 }
 
+Point2D Cube::textureMapCoords(const Point3D& p) const
+{
+  return Point2D(-1, -1);
+}
+
 /* 
   ********** Circle **********
 */
@@ -158,6 +163,11 @@ bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const dou
   return false;
 }
 
+Point2D NonhierSphere::textureMapCoords(const Point3D& p) const
+{
+  return Point2D(-1, -1);
+}
+
 /*
    Mesh in mesh.cpp 
 */
@@ -223,6 +233,11 @@ Cube::~Cube()
 {
 }
 
+Point2D NonhierBox::textureMapCoords(const Point3D& p) const
+{
+  return Point2D(-1, -1);
+}
+
 /* 
   ********** Cone **********
 */
@@ -269,6 +284,11 @@ bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offse
 bool Cone::checkPoint(const Point3D& poi) const
 {
   return (poi[2] >= 0.0 && poi[2] <= 1.0);
+}
+
+Point2D Cone::textureMapCoords(const Point3D& p) const
+{
+  return Point2D(-1, -1);
 }
 
 /* 
@@ -320,4 +340,9 @@ bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double o
 bool Cylinder::checkPoint(const Point3D& poi) const
 {
   return (poi[2] >= 0.0 && poi[2] <= 1.0);
+}
+
+Point2D Cylinder::textureMapCoords(const Point3D& p) const
+{
+  return Point2D(-1, -1);
 }

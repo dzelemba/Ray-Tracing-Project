@@ -84,7 +84,7 @@ struct gr_node_ud {
 // The "userdata" type for a material. Objects of this type will be
 // allocated by Lua to represent materials.
 struct gr_material_ud {
-  Material* material;
+  PhongMaterial* material;
 };
 
 // The "userdata" type for a light. Objects of this type will be
@@ -413,9 +413,9 @@ int gr_material_cmd(lua_State* L)
     }
   }
 
-  data->material = new Material(Colour(kd[0], kd[1], kd[2]),
-                                Colour(ks[0], ks[1], ks[2]),
-                                shininess, transparency, refraction);
+  data->material = new BasicMaterial(Colour(kd[0], kd[1], kd[2]),
+                                     Colour(ks[0], ks[1], ks[2]),
+                                     shininess, transparency, refraction);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
@@ -460,7 +460,7 @@ int gr_node_set_material_cmd(lua_State* L)
   gr_material_ud* matdata = (gr_material_ud*)luaL_checkudata(L, 2, "gr.material");
   luaL_argcheck(L, matdata != 0, 2, "Material expected");
 
-  Material* material = matdata->material;
+  PhongMaterial* material = matdata->material;
 
   self->set_material(material);
 

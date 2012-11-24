@@ -86,10 +86,10 @@ public:
                Primitive* primitive);
   virtual ~GeometryNode();
 
-  const Material* get_material() const;
-  Material* get_material();
+  const PhongMaterial* get_material() const;
+  PhongMaterial* get_material();
 
-  void set_material(Material* material)
+  void set_material(PhongMaterial* material)
   {
     m_material = material;
   }
@@ -102,7 +102,7 @@ public:
                    const double refractiveIndex = 1.0, int recursiveDepth = 0) const;
 
 protected:
-  Material* m_material;
+  PhongMaterial* m_material;
   Primitive* m_primitive;
 
 private:

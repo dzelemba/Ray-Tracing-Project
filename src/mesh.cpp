@@ -76,6 +76,10 @@ bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offse
   return false; 
 }
 
+Point2D Mesh::textureMapCoords(const Point3D& p) const
+{
+  return Point2D(-1, -1);
+}
 
 std::ostream& operator<<(std::ostream& out, const Mesh& mesh)
 {

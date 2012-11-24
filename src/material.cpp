@@ -1,24 +1,80 @@
 #include "material.hpp"
+#include "primitive.hpp"
 
-Material::Material(const Colour& kd, const Colour& ks, double shininess,
-                   double transparency, double refractiveIndex)
-  : m_kd(kd), m_ks(ks), m_shininess(shininess),
-    m_transparency(transparency), m_refractiveIndex(refractiveIndex)
+PhongMaterial::PhongMaterial(const Colour& ks, double shininess,
+                             double transparency, double refractiveIndex)
+  : m_transparency(transparency), m_refractiveIndex(refractiveIndex),
+    m_ks(ks), m_shininess(shininess), m_tempDiffuse(0.0)
 {
 }
 
-Material::~Material()
+PhongMaterial::~PhongMaterial()
 {
 }
 
-Colour Material::getCoefficient(const Vector3D& normal, const Vector3D& light, const Vector3D& view) const
+void PhongMaterial::calcDiffuse(const Primitive* primitive, const Point3D& p)
+{
+  m_tempDiffuse = getDiffuse(primitive, p);
+}
+
+Colour PhongMaterial::getCoefficient(const Vector3D& normal, const Vector3D& light, const Vector3D& view) const
 {
   Vector3D r = -light + 2 * (light.dot(normal)) * normal;
 
-  return m_kd + m_ks * ( pow(r.dot(view), m_shininess) / normal.dot(light) );
+  return m_tempDiffuse + m_ks * ( pow(r.dot(view), m_shininess) / normal.dot(light) );
 }
 
-Colour Material::getAmbient(const Colour& ambient)
+Colour PhongMaterial::getAmbient(const Colour& ambient) const
 {
-  return ambient * (m_kd);
+  return ambient * (m_tempDiffuse);
+}
+
+/*
+  *************** BasicMaterial ***************
+*/
+
+BasicMaterial::BasicMaterial(const Colour& kd, const Colour& ks, double shininess,
+                              double transparency, double refractiveIndex) 
+  : PhongMaterial(ks, shininess, transparency, refractiveIndex), 
+    m_kd(kd)
+{
+}
+
+BasicMaterial::~BasicMaterial()
+{
+}
+
+Colour BasicMaterial::getDiffuse(const Primitive* primitive, const Point3D& p) const
+{
+  (void)primitive;
+  (void)p;
+
+  return m_kd;
+}
+
+/*
+  *************** TextureMap ***************
+*/
+
+TextureMap::TextureMap(const std::string& filename, const Colour& ks, double shininess,
+                       double transparency, double refractiveIndex) 
+  : PhongMaterial(ks, shininess, transparency, refractiveIndex), 
+    m_textureMap()
+{
+  if (!m_textureMap.loadPng(filename)) {
+    std::cerr << "No png file found: " << filename << std::endl;
+  }
+}
+
+TextureMap::~TextureMap()
+{
+}
+
+Colour TextureMap::getDiffuse(const Primitive* primitive, const Point3D& p) const
+{
+  Point2D mapCoords = primitive->textureMapCoords(p);
+
+  return Colour(m_textureMap(mapCoords[0], mapCoords[1], 0),
+                m_textureMap(mapCoords[0], mapCoords[1], 1),
+                m_textureMap(mapCoords[0], mapCoords[1], 2));
 }

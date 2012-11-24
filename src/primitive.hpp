@@ -10,6 +10,8 @@ class Primitive {
   virtual ~Primitive();
   virtual bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                          double& minT, Vector3D& normal) const = 0;
+  virtual Point2D textureMapCoords(const Point3D& p) const = 0;
+
  protected:
   bool checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
                            const double A, const double B, const double C,
@@ -71,6 +73,8 @@ public:
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
+
 private:
   Point3D m_pos;
   double m_radius;
@@ -102,6 +106,8 @@ public:
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
+
 private:
   Mesh m_box;
 };
@@ -115,6 +121,8 @@ public:
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
+
 private:
   NonhierSphere m_unitSphere;
 };
@@ -131,6 +139,8 @@ class Cube : public Primitive {
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
+
  private:
   NonhierBox m_unitCube;
 };
@@ -146,6 +156,8 @@ class Cone : public Primitive {
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
+
  protected:
   bool checkPoint(const Point3D& poi) const;
 
@@ -165,6 +177,8 @@ class Cylinder : public Primitive {
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
+
  protected:
   bool checkPoint(const Point3D& poi) const;
 
