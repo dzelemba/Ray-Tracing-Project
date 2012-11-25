@@ -43,7 +43,7 @@
 #include <vector>
 #include "lua488.hpp"
 #include "light.hpp"
-#include "mesh.hpp"
+#include "primitive.hpp"
 
 // Uncomment the following line to enable debugging messages
 // #define GRLUA_ENABLE_DEBUG

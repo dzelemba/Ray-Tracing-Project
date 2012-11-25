@@ -2,6 +2,8 @@
 #define CS488_PRIMITIVE_HPP
 
 #include "algebra.hpp"
+#include <vector>
+#include <iosfwd>
 
 class Primitive {
  public:
@@ -12,10 +14,51 @@ class Primitive {
   bool checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
                            const double A, const double B, const double C,
                            double& minT) const;
-  bool checkCircleRoot(const Point3D& eye, const Vector3D& ray, const double minValue, const double plane,
-                       double& minT) const;
 
   virtual bool checkPoint(const Point3D& poi) const;
+};
+
+struct Plane {
+  Plane(const Vector3D& normal, const Point3D& p)
+    : m_normal(normal), m_p(p)
+   {}
+
+  double intersect(const Point3D& eye, const Vector3D& ray) const {
+    return m_normal.dot(m_p - eye) / ray.dot(m_normal);
+  }
+
+  Vector3D m_normal;
+  Point3D m_p;
+};
+
+class Polygon : public Primitive {
+ public:
+  Polygon(std::vector<Point3D>& pts, const Vector3D& normal);
+  virtual ~Polygon();
+
+  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                 double& minT, Vector3D& normal) const;
+
+ private:
+  bool checkPointForLine(const Point3D& p, const Point3D& p1, const Point3D& p2,
+                         const Vector3D& normal) const;
+
+  std::vector<Point3D> m_verts;
+  Plane m_plane;
+};
+
+class Circle : public Primitive {
+ public:
+  Circle(const Vector3D& normal, const Point3D& center, double radius);
+  virtual ~Circle();
+
+  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                 double& minT, Vector3D& normal) const;
+
+ private:
+  Plane m_plane;
+  Point3D m_center;
+  double m_radius;
 };
 
 class NonhierSphere : public Primitive {
@@ -33,24 +76,34 @@ private:
   double m_radius;
 };
 
+// A polygonal mesh.
+class Mesh : public Primitive {
+public:
+  Mesh(const std::vector<Point3D>& verts,
+       const std::vector< std::vector<int> >& faces);
+
+  typedef std::vector<int> Face;
+  
+  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset, Point3D& poi) const;
+  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                 double& minT, Vector3D& normal) const;
+private:
+  std::vector<Polygon> m_polygons;
+
+  NonhierSphere m_boundingSphere;
+
+  friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
+};
+
 class NonhierBox : public Primitive {
 public:
-  NonhierBox(const Point3D& pos, double size)
-    : m_pos(pos), m_size(size)
-  {
-  }
-  
+  NonhierBox(const Point3D& pos, double size);
   virtual ~NonhierBox();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
 private:
-  Point3D m_pos;
-  double m_size;
-
-  // Face: 1 - x, 2 - y, 3 - z
-  // NormalDir: 1 - Left, 2 - Right
-  bool checkPoint(Point3D p, int face, double t, double& minT, Vector3D& normal, int normalDir) const;
+  Mesh m_box;
 };
 
 class Sphere : public Primitive {
@@ -88,12 +141,16 @@ class Cube : public Primitive {
 */
 class Cone : public Primitive {
  public:
+  Cone();
   virtual ~Cone();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
  protected:
   bool checkPoint(const Point3D& poi) const;
+
+ private:
+  Circle m_base;
 };
 
 /*
@@ -103,11 +160,16 @@ class Cone : public Primitive {
 
 class Cylinder : public Primitive {
  public:
+  Cylinder();
   virtual ~Cylinder();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
  protected:
   bool checkPoint(const Point3D& poi) const;
+
+ private:
+  Circle m_top;
+  Circle m_bottom;
 };
 #endif

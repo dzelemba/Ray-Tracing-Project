@@ -4,7 +4,7 @@
 #include "algebra.hpp"
 #include "scene_node.hpp"
 #include "light.hpp"
-#include "mesh.hpp"
+#include "primitive.hpp"
 
 class Scene {
  public:

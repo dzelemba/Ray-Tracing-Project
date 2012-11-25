@@ -26,24 +26,6 @@ bool Primitive::checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, con
 
   return pointFound;
 }
- 
-bool Primitive::checkCircleRoot(const Point3D& eye, const Vector3D& ray, const double minValue,
-                                const double plane, double& minT) const
-{
-  double t = (plane - eye[2]) / ray[2];
-  Point3D poi = eye + t * ray;
-
-
-  // Check if point is within circle
-  if (poi[0] * poi[0] + poi[1] * poi[1] <= 1.0) {
-    if (t >= minValue && t < minT) {
-      minT = t;
-      return true;
-    }
-  }
-
-  return false;
-}
 
 bool Primitive::checkPoint(const Point3D& poi) const
 {
@@ -53,31 +35,92 @@ bool Primitive::checkPoint(const Point3D& poi) const
 }
 
 /* 
-  ********** Sphere **********
+  ********** Polygon **********
 */
 
-Sphere::~Sphere()
+Polygon::Polygon(std::vector<Point3D>& pts, const Vector3D& normal) 
+  :  m_verts(pts), m_plane(normal, m_verts.front())
 {
 }
 
-bool Sphere::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                       double& minT, Vector3D& normal) const
-{
-  return m_unitSphere.intersect(eye, ray, offset, minT, normal);
-}
-
-/* 
-  ********** Cube **********
-*/
-
-Cube::~Cube()
+Polygon::~Polygon()
 {
 }
+
+bool Polygon::checkPointForLine(const Point3D& p, const Point3D& p1, const Point3D& p2,
+                                const Vector3D& normal) const
+{
+  Vector3D v = p1 - p2;
+  Vector3D planeNormal = v.cross(normal);
+
+  return planeNormal.dot(p - p1) < 0;
+}
+
+bool Polygon::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                        double& minT, Vector3D& normal) const
+{
+  double t = m_plane.intersect(eye, ray); 
+
+  if (t > offset && t < minT) {
+    Point3D poi = eye + t * ray;
+
+    std::vector<Point3D>::const_iterator prev = m_verts.begin();
+    for (std::vector<Point3D>::const_iterator it = m_verts.begin() + 1; it != m_verts.end(); it++, prev++) {
+      if (!checkPointForLine(poi, *it, *prev, m_plane.m_normal)) {
+        return false;;
+      }
+    }
+
+    // Also check line formed by first and last.
+    if (!checkPointForLine(poi, m_verts.front(), m_verts.back(), m_plane.m_normal)) {
+      return false;
+    }
+
+    minT = t;
+    normal = m_plane.m_normal;
+    return true;
+  }
+
+  return false;
+}
+
 
 bool Cube::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                      double& minT, Vector3D& normal) const
 {
   return m_unitCube.intersect(eye, ray, offset, minT, normal);
+}
+
+/* 
+  ********** Circle **********
+*/
+
+Circle::Circle(const Vector3D& normal, const Point3D& center, double radius)
+  : m_plane(normal, center), m_center(center), m_radius(radius)
+{
+}
+
+Circle::~Circle()
+{
+}
+
+bool Circle::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                       double& minT, Vector3D& normal) const
+{
+  double t = m_plane.intersect(eye, ray); 
+
+  if (t > offset && t < minT) {
+    Point3D poi = eye + t * ray;
+
+    // Check if point is within circle
+    if ((poi - m_center).length() <= m_radius) {
+      minT = t;
+      normal = m_plane.m_normal;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /* 
@@ -115,66 +158,79 @@ bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const dou
   return false;
 }
 
+/*
+   Mesh in mesh.cpp 
+*/
+
 /* 
   ********** NonhierBox **********
 */
-NonhierBox::~NonhierBox()
+
+NonhierBox::NonhierBox(const Point3D& pos, double size)
+  : m_box(std::vector<Point3D>(), std::vector<std::vector<int> >())
 {
+  std::vector<Point3D> vertices;
+  vertices.push_back(Point3D(pos[0], pos[1], pos[2]));
+  vertices.push_back(Point3D(pos[0] + size, pos[1], pos[2]));
+  vertices.push_back(Point3D(pos[0] + size, pos[1] + size, pos[2]));
+  vertices.push_back(Point3D(pos[0], pos[1] + size, pos[2]));
+  vertices.push_back(Point3D(pos[0], pos[1], pos[2] + size));
+  vertices.push_back(Point3D(pos[0] + size, pos[1], pos[2] + size));
+  vertices.push_back(Point3D(pos[0] + size, pos[1] + size, pos[2] + size));
+  vertices.push_back(Point3D(pos[0], pos[1] + size, pos[2] + size));
+
+  std::vector<std::vector<int> > f;
+  int faces[6][4] = { {3, 2, 1, 0}, // Front
+                      {0, 1, 5, 4}, // Bottom
+                      {2, 6, 5, 1}, // Right
+                      {7, 3, 0, 4}, // Left
+                      {7, 6, 2, 3}, // Top
+                      {4, 5, 6, 7}}; // Back
+  for (int i = 0; i < 6; i++) f.push_back(std::vector<int> (faces[i], faces[i] + 4));
+
+  m_box = Mesh(vertices, f);
 }
 
-// Face: 1 - x, 2 - y, 3 - z
-// NormalDir: 1 - Left, 2 - Right
-bool NonhierBox::checkPoint(Point3D p, int face, double t, double& minT, Vector3D& normal, int normalDir) const
+NonhierBox::~NonhierBox()
 {
-  bool inFace = true;
-
-  // Compare other 2 coordinates
-  for (int j = 0; j < 3; j++) {
-    if (face != j) {
-      if (p[j] < m_pos[j] || p[j] > m_pos[j] + m_size) {
-        inFace = false;
-        break;
-      }
-    }
-  }
-  
-  if (inFace) {
-    minT = t;
-    normal = Vector3D();
-    normal[face] = normalDir == 1 ? -1.0 : 1.0; 
-    return true;
-  }
-
-  return false;
 }
 
 bool NonhierBox::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                            double& minT, Vector3D& normal) const
 {
-  // Since Nonhier box's are aligned with MCS, the plane equations become very simple.
-  // Just {x,y,z} = {m_pos[0] [+ m_size], m_pos[1] [+ m_size], m_pos[2] [+ m_size]}.
+  return m_box.intersect(eye, ray, offset, minT, normal);
+}
 
-  bool found = false;
-  for (int i = 0; i < 3; i++) {
-    double t1 = (m_pos[i] - eye[i]) / ray[i];
-    double t2 = (m_pos[i] + m_size - eye[i]) / ray[i];
+/* 
+  ********** Sphere **********
+*/
 
-    // Check if points are in face and update
-    // minT, normal appropriately.
-    if (t1 > offset && t1 < minT) {
-      found = checkPoint(eye + t1 * ray, i, t1, minT, normal, 1) || found;
-    }
+Sphere::~Sphere()
+{
+}
 
-    if (t2 > offset && t2 < minT) {
-      found = checkPoint(eye + t2 * ray, i, t2, minT, normal, 2) || found;
-    }
-  }
-  return found;
+bool Sphere::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                       double& minT, Vector3D& normal) const
+{
+  return m_unitSphere.intersect(eye, ray, offset, minT, normal);
+}
+
+/* 
+  ********** Cube **********
+*/
+
+Cube::~Cube()
+{
 }
 
 /* 
   ********** Cone **********
 */
+
+Cone::Cone()
+  : m_base(Vector3D(0.0, 0.0, 1.0), Point3D(0.0, 0.0, 1.0), 1.0)
+{
+}
 
 Cone::~Cone()
 {
@@ -203,8 +259,7 @@ bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offse
     pointFound = true;
   }
 
-  if (checkCircleRoot(eye, ray, offset, 1.0, minT)) {
-    normal = Vector3D(0.0, 0.0, 1.0);
+  if (m_base.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
   }
 
@@ -219,6 +274,12 @@ bool Cone::checkPoint(const Point3D& poi) const
 /* 
   ********** Cylinder **********
 */
+
+Cylinder::Cylinder()
+  : m_top(Vector3D(0.0, 0.0, 1.0), Point3D(0.0, 0.0, 1.0), 1.0),
+    m_bottom(Vector3D(0.0, 0.0, -1.0), Point3D(0.0, 0.0, 0.0), 1.0)
+{
+}
 
 Cylinder::~Cylinder()
 {
@@ -245,13 +306,11 @@ bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double o
     pointFound = true;
   }
 
-  if (checkCircleRoot(eye, ray, offset, 1.0, minT)) {
-    normal = Vector3D(0.0, 0.0, 1.0);
+  if (m_top.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
   }
 
-  if (checkCircleRoot(eye, ray, offset, 0.0, minT)) {
-    normal = Vector3D(0.0, 0.0, -1.0);
+  if (m_bottom.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
   }
 

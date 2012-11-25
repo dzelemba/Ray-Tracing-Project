@@ -105,6 +105,16 @@ private:
   double v_[3];
 };
 
+inline Point3D operator *(double s, const Point3D& p)
+{
+  return Point3D(s*p[0], s*p[1], s*p[2]);
+}
+
+inline Point3D operator +(const Point3D& a, const Point3D& b)
+{
+  return Point3D(a[0]+b[0], a[1]+b[1], a[2]+b[2]);
+}
+
 class Vector3D
 {
 public:
