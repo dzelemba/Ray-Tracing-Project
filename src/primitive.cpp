@@ -2,6 +2,8 @@
 #include "polyroots.hpp"
 #include <cfloat>
 
+static Point3D lastPOI;
+
 Primitive::~Primitive()
 {
 }
@@ -84,18 +86,10 @@ bool Polygon::intersect(const Point3D& eye, const Vector3D& ray, const double of
   return false;
 }
 
-
-bool Cube::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                     double& minT, Vector3D& normal) const
-{
-  return m_unitCube.intersect(eye, ray, offset, minT, normal);
-}
-
-Point2D Cube::textureMapCoords(const Point3D& p) const
+Point2D Polygon::textureMapCoords(const Point3D& p) const
 {
   return Point2D(-1, -1);
 }
-
 /* 
   ********** Circle **********
 */
@@ -128,6 +122,10 @@ bool Circle::intersect(const Point3D& eye, const Vector3D& ray, const double off
   return false;
 }
 
+Point2D Circle::textureMapCoords(const Point3D& p) const
+{
+  return Point2D(-1, -1);
+}
 /* 
   ********** NonhierSphere **********
 */
@@ -157,6 +155,8 @@ bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const dou
     Point3D poi = eye + minT * ray;
     normal = poi - m_pos;
     
+    lastPOI = poi;
+
     return true;
   }
 
@@ -165,7 +165,28 @@ bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const dou
 
 Point2D NonhierSphere::textureMapCoords(const Point3D& p) const
 {
-  return Point2D(-1, -1);
+  // We will find the latitude and longitude of the point and
+  // use that as our coordinates.
+
+  // Vectors pointing to the north pole and a point on the equator.
+  static Vector3D vn(0.0, 1.0, 0.0);
+  static Vector3D ve(0.0, 0.0, -1.0);
+
+  Vector3D vp = lastPOI - m_pos;
+  vp.normalize();
+
+  double phi = acos(-vn.dot(vp));
+  double lat = phi / M_PI;
+
+  double longitude;
+  double theta = (acos(vp.dot(ve) / sin(phi))) / (2 * M_PI);
+  if ( (vn.cross(ve)).dot(vp) > 0 ) {
+    longitude = theta;
+  } else {
+    longitude = 1 - theta;
+  }
+  
+  return Point2D(longitude, lat);  
 }
 
 /*
@@ -211,6 +232,10 @@ bool NonhierBox::intersect(const Point3D& eye, const Vector3D& ray, const double
   return m_box.intersect(eye, ray, offset, minT, normal);
 }
 
+Point2D NonhierBox::textureMapCoords(const Point3D& p) const
+{
+  return m_box.textureMapCoords(p);
+}
 /* 
   ********** Sphere **********
 */
@@ -225,6 +250,11 @@ bool Sphere::intersect(const Point3D& eye, const Vector3D& ray, const double off
   return m_unitSphere.intersect(eye, ray, offset, minT, normal);
 }
 
+Point2D Sphere::textureMapCoords(const Point3D& p) const
+{
+  return m_unitSphere.textureMapCoords(p);
+}
+
 /* 
   ********** Cube **********
 */
@@ -233,10 +263,17 @@ Cube::~Cube()
 {
 }
 
-Point2D NonhierBox::textureMapCoords(const Point3D& p) const
+bool Cube::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                     double& minT, Vector3D& normal) const
 {
-  return Point2D(-1, -1);
+  return m_unitCube.intersect(eye, ray, offset, minT, normal);
 }
+
+Point2D Cube::textureMapCoords(const Point3D& p) const
+{
+  return m_unitCube.textureMapCoords(p);
+}
+
 
 /* 
   ********** Cone **********

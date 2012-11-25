@@ -383,8 +383,6 @@ int gr_light_cmd(lua_State* L)
   return 1;
 }
 
-
-
 // Create a material
 extern "C"
 int gr_material_cmd(lua_State* L)
@@ -416,6 +414,45 @@ int gr_material_cmd(lua_State* L)
   data->material = new BasicMaterial(Colour(kd[0], kd[1], kd[2]),
                                      Colour(ks[0], ks[1], ks[2]),
                                      shininess, transparency, refraction);
+
+  luaL_newmetatable(L, "gr.material");
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Create a texture map
+extern "C"
+int gr_textureMap_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  int numArgs = lua_gettop(L);
+
+  gr_material_ud* data = (gr_material_ud*)lua_newuserdata(L, sizeof(gr_material_ud));
+  data->material = 0;
+  
+  const char* name = luaL_checkstring(L, 1);
+
+  double ks[3];
+  get_tuple(L, 2, ks, 3);
+
+  double shininess = luaL_checknumber(L, 3);
+  double refraction = 0.0;
+  double transparency = 0.0;
+
+  if (numArgs == 5) {
+    transparency = luaL_checknumber(L, 5);
+    refraction = luaL_checknumber(L, 4);
+
+    if (refraction == 1.0) {
+      std::cerr << "Refractive Index of 1.0 Not Supported" << std::endl;
+    }
+  }
+
+  data->material = new TextureMap(std::string(name),
+                                  Colour(ks[0], ks[1], ks[2]),
+                                  shininess, transparency, refraction);
 
   luaL_newmetatable(L, "gr.material");
   lua_setmetatable(L, -2);
@@ -568,6 +605,7 @@ static const luaL_reg grlib_functions[] = {
   {"cone", gr_cone_cmd},
   {"cylinder", gr_cylinder_cmd},
   {"material", gr_material_cmd},
+  {"textureMap", gr_textureMap_cmd},
   // New for assignment 4
   {"cube", gr_cube_cmd},
   {"nh_sphere", gr_nh_sphere_cmd},

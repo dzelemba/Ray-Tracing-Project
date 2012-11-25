@@ -241,6 +241,8 @@ Colour GeometryNode::refractionContribution(const Vector3D& viewDirection, const
 Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& viewDirection, 
                                           const Vector3D& normal) const
 {
+  m_material->calcDiffuse(m_primitive, poi);
+  
   // First add ambient light.
   Colour c = m_material->getAmbient(m_scene->ambient);
 

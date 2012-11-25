@@ -22,6 +22,7 @@ Mesh::Mesh(const std::vector<Point3D>& verts,
 
   // Now create our bounding sphere
   // Idea is to find max distance between two points.
+  // TODO: I don't think this is right....
   double maxDist = 0.0;
   Point3D point1, point2;
   for (std::vector<Point3D>::const_iterator p1 = verts.begin(); p1 != verts.end(); p1++) {

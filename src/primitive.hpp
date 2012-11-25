@@ -18,6 +18,8 @@ class Primitive {
                            double& minT) const;
 
   virtual bool checkPoint(const Point3D& poi) const;
+
+  Point3D m_lastPOI;
 };
 
 struct Plane {
@@ -40,6 +42,7 @@ class Polygon : public Primitive {
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
 
  private:
   bool checkPointForLine(const Point3D& p, const Point3D& p1, const Point3D& p2,
@@ -56,6 +59,7 @@ class Circle : public Primitive {
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
 
  private:
   Plane m_plane;
@@ -91,6 +95,8 @@ public:
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset, Point3D& poi) const;
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  Point2D textureMapCoords(const Point3D& p) const;
+
 private:
   std::vector<Polygon> m_polygons;
 
