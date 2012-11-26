@@ -504,4 +504,7 @@ inline std::ostream& operator <<(std::ostream& os, const Colour& c)
   return os << "c<" << c.R() << "," << c.G() << "," << c.B() << ">";
 }
 
+bool solve3x2System(const Vector3D& A1, const Vector3D& A2, const Vector3D& B, Point2D& x);
+void tests();
+
 #endif // CS488_ALGEBRA_HPP
