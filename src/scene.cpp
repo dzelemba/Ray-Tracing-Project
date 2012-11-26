@@ -1,7 +1,7 @@
 #include "scene.hpp"
 #include <vector>
 
-Scene::Scene(const SceneNode* root,
+Scene::Scene(SceneNode* root,
              int width, int height,
              const Point3D eye, const Vector3D view,
              const Vector3D up, double fov,
@@ -48,6 +48,9 @@ Scene::Scene(const SceneNode* root,
   faces.push_back(face1);
 
   background = Mesh(vertices, faces);
+
+  // Cache transforms (needed for texture mapping)
+  root->cacheTransforms();
 }
 
 bool Scene::intersect(const double dx, const double dy, Colour& c) const

@@ -8,7 +8,7 @@
 
 class Scene {
  public:
-  Scene(const SceneNode* root,
+  Scene(SceneNode* root,
         int width, int height,
         const Point3D eye, const Vector3D view,
         const Vector3D up, double fov,

@@ -71,6 +71,13 @@ const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray
   return retVal;
 }
 
+void SceneNode::cacheTransforms()
+{
+  for (std::list<SceneNode*>::iterator it = m_children.begin(); it != m_children.end(); it++) {
+    (*it)->cacheTransforms(m_invtrans);
+  }
+}
+
 const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                                          Vector3D& normal, double& minT) const
 {
@@ -90,6 +97,14 @@ const GeometryNode* SceneNode::intersect(const Point3D& eye, const Vector3D& ray
     normal = m_invtrans.transpose() * normal;
   }
   return retVal;
+}
+
+void SceneNode::cacheTransforms(const Matrix4x4& t)
+{
+  Matrix4x4 thisTrans = m_invtrans * t;
+  for (std::list<SceneNode*>::iterator it = m_children.begin(); it != m_children.end(); it++) {
+    (*it)->cacheTransforms(thisTrans);
+  }
 }
 
 /*
@@ -122,6 +137,11 @@ const GeometryNode* GeometryNode::intersect(const Point3D& eye, const Vector3D& 
     return NULL;
   }
 
+}
+
+void GeometryNode::cacheTransforms(const Matrix4x4& t)
+{
+  m_totalTransform = m_invtrans * t;
 }
 
 Colour GeometryNode::getColour(const Point3D& eye, const Point3D& poi, const Vector3D& normal,
@@ -241,7 +261,7 @@ Colour GeometryNode::refractionContribution(const Vector3D& viewDirection, const
 Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& viewDirection, 
                                           const Vector3D& normal) const
 {
-  m_material->calcDiffuse(m_primitive, poi);
+  m_material->calcDiffuse(m_primitive, m_totalTransform * poi);
   
   // First add ambient light.
   Colour c = m_material->getAmbient(m_scene->ambient);

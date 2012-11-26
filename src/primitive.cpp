@@ -3,8 +3,7 @@
 #include <cfloat>
 
 // Used to remember stuff about last intersection.
-static Point3D lastPOI;
-static int region;
+static double epsilon = 0.00001;
 
 Primitive::~Primitive()
 {
@@ -42,8 +41,8 @@ bool Primitive::checkPoint(const Point3D& poi) const
   ********** Polygon **********
 */
 
-Polygon::Polygon(std::vector<Point3D>& pts, const Vector3D& normal) 
-  :  m_verts(pts), m_plane(normal, m_verts.front())
+Polygon::Polygon(std::vector<Point3D>& pts, const Vector3D& normal, const Vector3D& up) 
+  :  m_verts(pts), m_plane(normal, m_verts.front(), up)
 {
 }
 
@@ -68,15 +67,7 @@ bool Polygon::intersect(const Point3D& eye, const Vector3D& ray, const double of
   if (t > offset && t < minT) {
     Point3D poi = eye + t * ray;
 
-    std::vector<Point3D>::const_iterator prev = m_verts.begin();
-    for (std::vector<Point3D>::const_iterator it = m_verts.begin() + 1; it != m_verts.end(); it++, prev++) {
-      if (!checkPointForLine(poi, *it, *prev, m_plane.m_normal)) {
-        return false;;
-      }
-    }
-
-    // Also check line formed by first and last.
-    if (!checkPointForLine(poi, m_verts.front(), m_verts.back(), m_plane.m_normal)) {
+    if (!intersect(poi)) {
       return false;
     }
 
@@ -88,8 +79,64 @@ bool Polygon::intersect(const Point3D& eye, const Vector3D& ray, const double of
   return false;
 }
 
+bool Polygon::intersect(const Point3D& p) const
+{
+  double dot = m_plane.m_normal.dot(p - m_plane.m_p);
+  if (dot < -epsilon || dot > epsilon) {
+    return false;
+  }
+
+  std::vector<Point3D>::const_iterator prev = m_verts.begin();
+  for (std::vector<Point3D>::const_iterator it = m_verts.begin() + 1; it != m_verts.end(); it++, prev++) {
+    if (!checkPointForLine(p, *it, *prev, m_plane.m_normal)) {
+      return false;;
+    }
+  }
+
+  // Also check line formed by first and last.
+  if (!checkPointForLine(p, m_verts.front(), m_verts.back(), m_plane.m_normal)) {
+    return false;
+  }
+
+  return true;
+}
+
 Point2D Polygon::textureMapCoords(const Point3D& p) const
 {
+  // Pick any point to be our "center"
+  Point3D center = m_verts.front();  
+
+  // Find max x and y distance based on a coordinate system defined by center
+  // and m_up and m_right of the plane.
+  Point2D coords;
+  double minX = DBL_MAX, maxX = -DBL_MAX;
+  double minY = DBL_MAX, maxY = -DBL_MAX;
+  for (std::vector<Point3D>::const_iterator it = m_verts.begin(); it != m_verts.end(); it++) {
+    Vector3D v = *it - center;
+    if (solve3x2System(m_plane.m_up, m_plane.m_right, v, coords)) {
+      if (coords[0] > 100000) {
+        std::cerr << coords << " " << m_plane.m_up << " " << m_plane.m_right << " " << v << std::endl;
+      }
+      if (coords[0] < minX) minX = coords[0];
+      if (coords[0] > maxX) maxX = coords[0];
+      if (coords[1] < minY) minY = coords[1];
+      if (coords[1] > maxY) maxY = coords[1];
+    } else {
+      std::cerr << "Failed to solve system in polygon: " << m_plane.m_up << " "
+                << m_plane.m_right << " " << v << std::endl;
+    }
+  }
+  
+  // Now get coordinates for our point.
+  if (solve3x2System(m_plane.m_up, m_plane.m_right, p - center, coords)) {
+    double x = (coords[0] - minX) / (maxX - minX);
+    double y = (coords[1] - minY) / (maxY - minY);
+
+    return Point2D(x, y);
+  } else {
+    std::cerr << "Failed to solve system in polygon: " << m_plane.m_up << " "
+              << m_plane.m_right << " " << p - center << std::endl;
+  }
   return Point2D(-1, -1);
 }
 /* 
@@ -122,6 +169,7 @@ bool Circle::intersect(const Point3D& eye, const Vector3D& ray, const double off
     if ((poi - m_center).length() <= m_radius) {
       minT = t;
       normal = m_plane.m_normal;
+
       return true;
     }
   }
@@ -131,7 +179,7 @@ bool Circle::intersect(const Point3D& eye, const Vector3D& ray, const double off
 
 Point2D Circle::textureMapCoords(const Point3D& p) const
 {
-  Vector3D v = lastPOI - m_center;
+  Vector3D v = p - m_center;
   Point2D coords;
   
   if (solve3x2System(m_plane.m_up, m_plane.m_right, v, coords)) {
@@ -171,8 +219,6 @@ bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const dou
     Point3D poi = eye + minT * ray;
     normal = poi - m_pos;
     
-    lastPOI = poi;
-
     return true;
   }
 
@@ -188,20 +234,21 @@ Point2D NonhierSphere::textureMapCoords(const Point3D& p) const
   static Vector3D vn(0.0, 1.0, 0.0);
   static Vector3D ve(0.0, 0.0, -1.0);
 
-  Vector3D vp = lastPOI - m_pos;
+  Vector3D vp = p - m_pos;
   vp.normalize();
 
-  double phi = acos(-vn.dot(vp));
+  double phi = acos(vn.dot(vp));
   double lat = phi / M_PI;
 
-  double longitude;
-  double theta = (acos(vp.dot(ve) / sin(phi))) / (2 * M_PI);
-  if ( (vn.cross(ve)).dot(vp) > 0 ) {
-    longitude = theta;
-  } else {
-    longitude = 1 - theta;
+  Vector3D proj(vp[0], 0.0, vp[2]);
+  proj.normalize();
+
+  double theta = acos(ve.dot(proj));
+  if (proj[0] < 0) {
+    theta = 2* M_PI - theta;
   }
-  
+  double longitude = theta / (2*M_PI);
+
   return Point2D(longitude, lat);  
 }
 
@@ -235,7 +282,15 @@ NonhierBox::NonhierBox(const Point3D& pos, double size)
                       {4, 5, 6, 7}}; // Back
   for (int i = 0; i < 6; i++) f.push_back(std::vector<int> (faces[i], faces[i] + 4));
 
-  m_box = Mesh(vertices, f);
+  std::vector<Vector3D> upVectors;
+  upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
+  upVectors.push_back(Vector3D(0.0, 0.0, 1.0));
+  upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
+  upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
+  upVectors.push_back(Vector3D(0.0, 0.0, 1.0));
+  upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
+
+  m_box = Mesh(vertices, f, upVectors);
 }
 
 NonhierBox::~NonhierBox()
@@ -324,17 +379,11 @@ bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offse
     Vector3D v2 = Vector3D(-1 * poi[1], poi[0], 0);
     normal = v2.cross(v1);
 
-    lastPOI = poi;
-    region = 0;
-
     pointFound = true;
   }
 
   if (m_base.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
-
-    lastPOI = eye + minT * ray;
-    region = 1;
   }
 
   return pointFound;
@@ -347,23 +396,27 @@ bool Cone::checkPoint(const Point3D& poi) const
 
 Point2D Cone::textureMapCoords(const Point3D& p) const
 {
+  Point3D poi = p;
+  int region = determineRegion(p);
+
   if (region == 0) {
-    lastPOI[2] = 1.0;
-    return m_base.textureMapCoords(p); 
-
-    Vector3D v = lastPOI - Point3D(0.0, 0.0, 0.0);
-    
-    double x =  (v.length() * lastPOI[0] + sqrt(2)) / (2*sqrt(2));
-    double y =  (v.length() * lastPOI[1] + sqrt(2)) / (2*sqrt(2));
-
-    return Point2D(x, y);
+    // Map point onto base.
+    poi[2] = 1.0;
+    return m_base.textureMapCoords(poi); 
   } else if (region == 1) {
     return m_base.textureMapCoords(p);
-  } else {
-    std::cerr << "Unknown Region" << std::endl;
-  }
+  } 
 
-  return Point2D(0.5, 0.5);
+  return Point2D(-1, -1);
+}
+
+int Cone::determineRegion(const Point3D& p) const
+{
+  if (p[2] > 1.0 - epsilon && p[2] < 1.0 + epsilon) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 /* 
@@ -398,24 +451,15 @@ bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double o
     Point3D poi = eye + minT * ray;
     normal = Vector3D(poi[0], poi[1], 0.0);
 
-    lastPOI = poi;
-    region = 0;
-
     pointFound = true;
   }
 
   if (m_top.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
-
-    lastPOI = eye + minT * ray;;
-    region = 1;
   }
 
   if (m_bottom.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
-
-    lastPOI = eye + minT * ray;;
-    region = 2;
   }
 
   return pointFound;
@@ -428,10 +472,12 @@ bool Cylinder::checkPoint(const Point3D& poi) const
 
 Point2D Cylinder::textureMapCoords(const Point3D& p) const
 {
-  if (region == 0) {
-    double theta = acos(lastPOI[0]);
+  int region = determineRegion(p);
 
-    if (lastPOI[1] < 0) {
+  if (region == 0) {
+    double theta = acos(p[0]);
+
+    if (p[1] < 0) {
       theta = -theta;
     }
   
@@ -439,7 +485,7 @@ Point2D Cylinder::textureMapCoords(const Point3D& p) const
     double x = (theta + M_PI) / M_PI;
     if (x > 1) x = x -1;
 
-    return Point2D(x, lastPOI[2]);
+    return Point2D(x, p[2]);
   } else if (region == 1) {
     return m_top.textureMapCoords(p);
   } else if (region == 2) {
@@ -449,4 +495,15 @@ Point2D Cylinder::textureMapCoords(const Point3D& p) const
   }
 
   return Point2D(-1, -1);
+}
+
+int Cylinder::determineRegion(const Point3D& p) const
+{
+  if (p[2] > -epsilon && p[2] < epsilon)  {
+    return 2;
+  } else if (p[2] > 1.0 - epsilon && p[2] < 1.0 + epsilon) {
+    return 1;
+  } else {
+    return 0;
+  }
 }

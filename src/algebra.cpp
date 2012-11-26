@@ -151,7 +151,7 @@ bool solve3x2System(const Vector3D& A1, const Vector3D& A2, const Vector3D& B, P
   Vector3D a1 = A1, a2 = A2, b = B;
 
   // Make sure A[0,0] and A[1,1] aren't 0.
-  if (a1[0] == 0) {
+  if (a1[0] > -epsilon && a1[0] < epsilon) {
     if (a1[2] != 0) {
       double t1 = a1[0], t2 = a2[0], t3 = b[0];
       a1[0] = a1[2]; a2[0] = a2[2]; b[0] = b[2];
@@ -165,7 +165,7 @@ bool solve3x2System(const Vector3D& A1, const Vector3D& A2, const Vector3D& B, P
     }
   }
 
-  if (a2[1] == 0) {
+  if (a2[1] > -epsilon && a2[1] < epsilon) {
     if (a2[2] != 0) {
       double t1 = a1[1], t2 = a2[1], t3 = b[1];
       a1[1] = a1[2]; a2[1] = a2[2]; b[1] = b[2];
@@ -191,13 +191,24 @@ bool solve3x2System(const Vector3D& A1, const Vector3D& A2, const Vector3D& B, P
     a1[1] = 0;
   }
 
-  if (a1[2] != 0) {
+  // Check again since we modified this row
+  if (a2[1] > -epsilon && a2[1] < epsilon) {
+    if (a2[2] != 0) {
+      double t1 = a1[1], t2 = a2[1], t3 = b[1];
+      a1[1] = a1[2]; a2[1] = a2[2]; b[1] = b[2];
+      a1[2] = t1; a2[2] = t2; b[2] = t3;
+    } else {
+      return false;
+    } 
+  }
+
+  if (a1[2] < -epsilon || a1[2] > epsilon) {
     a2[2] = (a1[0] / a1[2]) * a2[2] - a2[0];
     b[2] = (a1[0] / a1[2]) * b[2] - b[0];
     a1[2] = 0;
   }
 
-  if (a2[2] != 0) {
+  if (a2[2] < -epsilon || a2[2] > epsilon) {
     b[2] = (a2[1] / a2[2]) * b[2] - b[1];
     a2[2] = 0;
   }
@@ -290,6 +301,17 @@ void tests() {
     Vector3D a1(1, 1, 1);
     Vector3D a2(1, -1, 1);
     Vector3D b(10, 6, 2);
+
+    Point2D x;
+    if (solve3x2System(a1, a2, b, x)) {
+      std::cerr << x << std::endl;
+    }
+  }
+  // From Ray Tracer
+  {
+    Vector3D a1(0.809017, -0.309017, 0.5);
+    Vector3D a2(-0.467086, 0.178411, 0.866025);
+    Vector3D b(-1.61803, 0.618034, -1);
 
     Point2D x;
     if (solve3x2System(a1, a2, b, x)) {

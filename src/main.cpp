@@ -4,7 +4,7 @@
 #include "renderer.hpp"
 
 int main(int argc, char** argv)
-{
+{ 
   std::string filename = argv[argc - 1];
   std::string outfile = filename.substr(0, filename.find_first_of('.')).append(".png");
 

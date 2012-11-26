@@ -174,6 +174,12 @@ public:
   {
     return sqrt(length2());
   }
+  bool isZero() {
+    static double epsilon = 0.0001;
+    return v_[0] > -epsilon && v_[0] < epsilon &&
+           v_[1] > -epsilon && v_[1] < epsilon &&
+           v_[2] > -epsilon && v_[2] < epsilon;
+  }
 
   double normalize();
 

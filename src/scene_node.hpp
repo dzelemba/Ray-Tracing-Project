@@ -59,11 +59,15 @@ public:
   std::string m_name;
 
   static void setScene(const Scene* scene) { m_scene = scene; }
+
+  void cacheTransforms();
 protected:
   // Actual function used for the recursion.
   // Keeps track of the minimum t found so far to determine which object to return.
   virtual const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offest,
                                         Vector3D& normal, double& minT) const;
+
+  virtual void cacheTransforms(const Matrix4x4& t);
 
   // Useful for picking
   int m_id;
@@ -94,14 +98,16 @@ public:
     m_material = material;
   }
 
-  // Overwritten to do actual intersection
-  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                                Vector3D& normal, double& minT) const;
-
   Colour getColour(const Point3D& eye, const Point3D& poi, const Vector3D& normal,
                    const double refractiveIndex = 1.0, int recursiveDepth = 0) const;
 
 protected:
+  // Overwritten to do actual intersection
+  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                Vector3D& normal, double& minT) const;
+
+  void cacheTransforms(const Matrix4x4& t);
+
   PhongMaterial* m_material;
   Primitive* m_primitive;
 
@@ -114,6 +120,7 @@ private:
                                 const double refractiveIndex, int recursiveDepth) const;
   Colour getLightContribution(const Point3D& poi, const Vector3D& viewDirection, const Vector3D& normal) const;
 
+  Matrix4x4 m_totalTransform;
 };
 
 #endif

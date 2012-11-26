@@ -3,7 +3,8 @@
 #include <cfloat>
 
 Mesh::Mesh(const std::vector<Point3D>& verts,
-           const std::vector< std::vector<int> >& faces)
+           const std::vector< std::vector<int> >& faces,
+           const std::vector<Vector3D>& upVectors)
   : m_polygons(),
     m_boundingSphere(Point3D(0.0, 0.0, 0.0), 0.0)
 {
@@ -17,7 +18,17 @@ Mesh::Mesh(const std::vector<Point3D>& verts,
       vertices.push_back(verts[*it2]);
     }
 
-    m_polygons.push_back(Polygon(vertices, normal));
+    // Just put something on the plane for the up vector.
+    m_polygons.push_back(Polygon(vertices, normal, v1));
+  }
+
+  // If we're given up vectors add them to the polygons.
+  if (!upVectors.empty()) {
+    std::vector<Polygon>::iterator p = m_polygons.begin();
+    std::vector<Vector3D>::const_iterator it = upVectors.begin();
+    for ( ; p != m_polygons.end() && it != upVectors.end(); it++, p++) {
+      p->set_upVector(*it);
+    }
   }
 
   // Now create our bounding sphere
@@ -79,7 +90,19 @@ bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offse
 
 Point2D Mesh::textureMapCoords(const Point3D& p) const
 {
-  return Point2D(-1, -1);
+  return determinePolygon(p).textureMapCoords(p);
+}
+
+const Polygon& Mesh::determinePolygon(const Point3D& p) const
+{
+  for (std::vector<Polygon>::const_iterator it = m_polygons.begin(); it != m_polygons.end(); it++) {
+    if (it->intersect(p)) {
+      return *it;
+    }
+  }
+
+  std::cerr << "No Polygon found for point: " << p << std::endl;
+  return m_polygons.front();
 }
 
 std::ostream& operator<<(std::ostream& out, const Mesh& mesh)

@@ -35,6 +35,13 @@ struct Plane {
     return m_normal.dot(m_p - eye) / ray.dot(m_normal);
   }
 
+  void set_upVector(const Vector3D& up) {
+    m_up = up;
+    m_right = m_up.cross(m_normal);
+    m_up.normalize();
+    m_right.normalize();
+  }
+
   Vector3D m_normal;
   Point3D m_p;
   Vector3D m_up;
@@ -43,12 +50,15 @@ struct Plane {
 
 class Polygon : public Primitive {
  public:
-  Polygon(std::vector<Point3D>& pts, const Vector3D& normal);
+  Polygon(std::vector<Point3D>& pts, const Vector3D& normal, const Vector3D& up = Vector3D(0.0, 1.0, 0.0));
   virtual ~Polygon();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                  double& minT, Vector3D& normal) const;
+  bool intersect(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
+
+  void set_upVector(const Vector3D& up) { m_plane.set_upVector(up); }
 
  private:
   bool checkPointForLine(const Point3D& p, const Point3D& p1, const Point3D& p2,
@@ -95,7 +105,8 @@ private:
 class Mesh : public Primitive {
 public:
   Mesh(const std::vector<Point3D>& verts,
-       const std::vector< std::vector<int> >& faces);
+       const std::vector< std::vector<int> >& faces,
+       const std::vector<Vector3D>& upVectors = std::vector<Vector3D>() );
 
   typedef std::vector<int> Face;
   
@@ -105,6 +116,9 @@ public:
   Point2D textureMapCoords(const Point3D& p) const;
 
 private:
+  const Polygon& determinePolygon(const Point3D& p) const;
+
+  // TODO: Provide option to pass pointers to Polygons to save space.
   std::vector<Polygon> m_polygons;
 
   NonhierSphere m_boundingSphere;
@@ -175,6 +189,7 @@ class Cone : public Primitive {
   bool checkPoint(const Point3D& poi) const;
 
  private:
+  int determineRegion(const Point3D& p) const;
   Circle m_base;
 };
 
@@ -196,6 +211,8 @@ class Cylinder : public Primitive {
   bool checkPoint(const Point3D& poi) const;
 
  private:
+  int determineRegion(const Point3D& p) const;
+
   Circle m_top;
   Circle m_bottom;
 };
