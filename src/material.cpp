@@ -74,8 +74,15 @@ Colour TextureMap::getDiffuse(const Primitive* primitive, const Point3D& p) cons
 {
   Point2D mapCoords = primitive->textureMapCoords(p);
 
+  if (mapCoords[0] < 0 || mapCoords[0] > 1 || mapCoords[1] < 0 || mapCoords[1] > 1) {
+    std::cerr << "Bad Texture Map Coordinates Returned: " << mapCoords[0]
+              << " " << mapCoords[1] << std::endl;
+  }
+
   int x = mapCoords[0] * (double)m_textureMap.width();
   int y = mapCoords[1] * (double)m_textureMap.height();
+  
+
   return Colour(m_textureMap(x, y, 0),
                 m_textureMap(x, y, 1),
                 m_textureMap(x, y, 2));

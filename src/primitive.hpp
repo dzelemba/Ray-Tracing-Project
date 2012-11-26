@@ -23,9 +23,13 @@ class Primitive {
 };
 
 struct Plane {
-  Plane(const Vector3D& normal, const Point3D& p)
-    : m_normal(normal), m_p(p)
-   {}
+  Plane(const Vector3D& normal, const Point3D& p, const Vector3D& up = Vector3D(0.0, 1.0, 0.0))
+    : m_normal(normal), m_p(p), m_up(up), m_right(m_up.cross(m_normal))
+  {
+    m_normal.normalize();
+    m_up.normalize();
+    m_right.normalize(); 
+  }
 
   double intersect(const Point3D& eye, const Vector3D& ray) const {
     return m_normal.dot(m_p - eye) / ray.dot(m_normal);
@@ -33,6 +37,8 @@ struct Plane {
 
   Vector3D m_normal;
   Point3D m_p;
+  Vector3D m_up;
+  Vector3D m_right;
 };
 
 class Polygon : public Primitive {
@@ -55,6 +61,7 @@ class Polygon : public Primitive {
 class Circle : public Primitive {
  public:
   Circle(const Vector3D& normal, const Point3D& center, double radius);
+  Circle(const Vector3D& normal, const Point3D& center, double radius, const Vector3D& up);
   virtual ~Circle();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,

@@ -2,7 +2,9 @@
 #include "polyroots.hpp"
 #include <cfloat>
 
+// Used to remember stuff about last intersection.
 static Point3D lastPOI;
+static int region;
 
 Primitive::~Primitive()
 {
@@ -99,6 +101,11 @@ Circle::Circle(const Vector3D& normal, const Point3D& center, double radius)
 {
 }
 
+Circle::Circle(const Vector3D& normal, const Point3D& center, double radius, const Vector3D& up)
+  : m_plane(normal, center, up), m_center(center), m_radius(radius)
+{
+}
+
 Circle::~Circle()
 {
 }
@@ -124,7 +131,16 @@ bool Circle::intersect(const Point3D& eye, const Vector3D& ray, const double off
 
 Point2D Circle::textureMapCoords(const Point3D& p) const
 {
-  return Point2D(-1, -1);
+  Vector3D v = lastPOI - m_center;
+  Point2D coords;
+  
+  if (solve3x2System(m_plane.m_up, m_plane.m_right, v, coords)) {
+    return Point2D((coords[0] + 1.0) / 2.0, (coords[1] + 1.0) / 2.0);
+  }
+
+  std::cerr << "Circle Texture Map failed to find solution: " << m_plane.m_up << " "
+            << m_plane.m_right << " " << v << std::endl;
+  return Point2D(-1.0, 1.0);
 }
 /* 
   ********** NonhierSphere **********
@@ -308,11 +324,17 @@ bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offse
     Vector3D v2 = Vector3D(-1 * poi[1], poi[0], 0);
     normal = v2.cross(v1);
 
+    lastPOI = poi;
+    region = 0;
+
     pointFound = true;
   }
 
   if (m_base.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
+
+    lastPOI = eye + minT * ray;
+    region = 1;
   }
 
   return pointFound;
@@ -325,7 +347,23 @@ bool Cone::checkPoint(const Point3D& poi) const
 
 Point2D Cone::textureMapCoords(const Point3D& p) const
 {
-  return Point2D(-1, -1);
+  if (region == 0) {
+    lastPOI[2] = 1.0;
+    return m_base.textureMapCoords(p); 
+
+    Vector3D v = lastPOI - Point3D(0.0, 0.0, 0.0);
+    
+    double x =  (v.length() * lastPOI[0] + sqrt(2)) / (2*sqrt(2));
+    double y =  (v.length() * lastPOI[1] + sqrt(2)) / (2*sqrt(2));
+
+    return Point2D(x, y);
+  } else if (region == 1) {
+    return m_base.textureMapCoords(p);
+  } else {
+    std::cerr << "Unknown Region" << std::endl;
+  }
+
+  return Point2D(0.5, 0.5);
 }
 
 /* 
@@ -360,15 +398,24 @@ bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double o
     Point3D poi = eye + minT * ray;
     normal = Vector3D(poi[0], poi[1], 0.0);
 
+    lastPOI = poi;
+    region = 0;
+
     pointFound = true;
   }
 
   if (m_top.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
+
+    lastPOI = eye + minT * ray;;
+    region = 1;
   }
 
   if (m_bottom.intersect(eye, ray, offset, minT, normal)) {
     pointFound = true;
+
+    lastPOI = eye + minT * ray;;
+    region = 2;
   }
 
   return pointFound;
@@ -381,5 +428,25 @@ bool Cylinder::checkPoint(const Point3D& poi) const
 
 Point2D Cylinder::textureMapCoords(const Point3D& p) const
 {
+  if (region == 0) {
+    double theta = acos(lastPOI[0]);
+
+    if (lastPOI[1] < 0) {
+      theta = -theta;
+    }
+  
+    // Texture seemed stretched here so cut the range in half.
+    double x = (theta + M_PI) / M_PI;
+    if (x > 1) x = x -1;
+
+    return Point2D(x, lastPOI[2]);
+  } else if (region == 1) {
+    return m_top.textureMapCoords(p);
+  } else if (region == 2) {
+    return m_bottom.textureMapCoords(p);
+  } else {
+    std::cerr << "Unknown Region" << std::endl;
+  }
+
   return Point2D(-1, -1);
 }
