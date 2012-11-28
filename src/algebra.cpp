@@ -14,6 +14,10 @@
 
 #include "algebra.hpp"
 
+bool equal(const double d1, const double d2) {
+  return d1 > d2 - epsilon && d1 < d2 + epsilon;
+}
+
 double Vector3D::normalize()
 {
   double denom = 1.0;
@@ -145,8 +149,6 @@ Matrix4x4 Matrix4x4::invert() const
 // This is ugly...
 bool solve3x2System(const Vector3D& A1, const Vector3D& A2, const Vector3D& B, Point2D& x)
 {
-  static double epsilon = 0.0001;
-
   // Make copies of everthing.
   Vector3D a1 = A1, a2 = A2, b = B;
 

@@ -6,6 +6,7 @@
 #include "primitive.hpp"
 #include "material.hpp"
 #include "light.hpp"
+#include "segmentlist.hpp"
 
 class GeometryNode;
 class Scene;
@@ -51,23 +52,22 @@ public:
   // Also gives point of intersection and normal.
   bool intersect(const Point3D& eye, const Vector3D& ray, double offset) const;
   bool intersect(const Point3D& eye, const Vector3D& ray, double offset, Colour& c) const;
-  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray,
-                                const double offset, double& minT) const;
-  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                                Point3D& poi, Vector3D& normal) const;
+  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                IntersectionPoint& poi) const;
   
+  // Actual function used for the recursion.
+  // Keeps track of the minimum t found so far to determine which object to return.
+  virtual void intersect(const Point3D& eye, const Vector3D& ray, const double offest,
+                                         SegmentList& tVals) const;
+
   std::string m_name;
 
   static void setScene(const Scene* scene) { m_scene = scene; }
 
   void cacheTransforms();
 protected:
-  // Actual function used for the recursion.
-  // Keeps track of the minimum t found so far to determine which object to return.
-  virtual const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offest,
-                                        Vector3D& normal, double& minT) const;
-
-  virtual void cacheTransforms(const Matrix4x4& t);
+  virtual void cacheTransforms(const Matrix4x4& rayTrans, const Matrix4x4& normalTrans);
+  virtual void combineSegments(SegmentList& s1, SegmentList& s2) const;
 
   // Useful for picking
   int m_id;
@@ -84,6 +84,24 @@ protected:
   static const Scene* m_scene;
 };
 
+class IntersectionNode : public SceneNode {
+ public:
+  IntersectionNode(const std::string& name);
+  virtual ~IntersectionNode();
+
+ protected:
+  void combineSegments(SegmentList& s1, SegmentList& s2) const;
+};
+
+class DifferenceNode : public SceneNode {
+ public:
+  DifferenceNode(const std::string& name);
+  virtual ~DifferenceNode();
+
+ protected:
+  void combineSegments(SegmentList& s1, SegmentList& s2) const;
+};
+
 class GeometryNode : public SceneNode {
 public:
   GeometryNode(const std::string& name,
@@ -98,15 +116,15 @@ public:
     m_material = material;
   }
 
-  Colour getColour(const Point3D& eye, const Point3D& poi, const Vector3D& normal,
+  Colour getColour(const Point3D& eye, const IntersectionPoint& poi,
                    const double refractiveIndex = 1.0, int recursiveDepth = 0) const;
 
-protected:
   // Overwritten to do actual intersection
-  const GeometryNode* intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                                Vector3D& normal, double& minT) const;
+  void intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                 SegmentList& tVals) const;
 
-  void cacheTransforms(const Matrix4x4& t);
+protected:
+  void cacheTransforms(const Matrix4x4& rayTrans, const Matrix4x4& normalTrans);
 
   PhongMaterial* m_material;
   Primitive* m_primitive;
@@ -120,7 +138,13 @@ private:
                                 const double refractiveIndex, int recursiveDepth) const;
   Colour getLightContribution(const Point3D& poi, const Vector3D& viewDirection, const Vector3D& normal) const;
 
-  Matrix4x4 m_totalTransform;
+  // Total transform going up the hierarchy applied to the poi (Mk^-1 * ... M1^-1 )p
+  // Also happens to be the same as the total transformation applied to eye, ray 
+  // going down the hierarchy.
+  Matrix4x4 m_totalPointTransform;
+
+  // Total transform going up the hierarchy applied to normal (M1^-T * ... Mk^-T)n
+  Matrix4x4 m_totalNormalTransform;
 };
 
 #endif

@@ -23,6 +23,14 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+static double epsilon = 0.0000001;
+
+// Convience functions for epsilon checks
+
+bool equal(const double d1, const double d2);
+
+class GeometryNode;
+
 class Point2D
 {
 public:
@@ -175,7 +183,6 @@ public:
     return sqrt(length2());
   }
   bool isZero() {
-    static double epsilon = 0.0001;
     return v_[0] > -epsilon && v_[0] < epsilon &&
            v_[1] > -epsilon && v_[1] < epsilon &&
            v_[2] > -epsilon && v_[2] < epsilon;
@@ -509,6 +516,40 @@ inline std::ostream& operator <<(std::ostream& os, const Colour& c)
 {
   return os << "c<" << c.R() << "," << c.G() << "," << c.B() << ">";
 }
+
+// TODO: Store texture map coordintaes here as well.
+struct IntersectionPoint {
+  IntersectionPoint() 
+    : m_t(0.0), m_normal(), m_owner(NULL), m_poi()
+  {}
+  IntersectionPoint(const double t) 
+    : m_t(t), m_normal(), m_owner(NULL), m_poi()
+  {}
+  IntersectionPoint(const double t, const Vector3D& normal)
+    : m_t(t), m_normal(normal), m_owner(NULL), m_poi()
+  {}
+  IntersectionPoint(const double t, const Vector3D& normal, const GeometryNode* owner)
+    : m_t(t), m_normal(normal), m_owner(owner), m_poi()
+  {}
+
+  bool operator<(const IntersectionPoint& other) const {
+    return m_t < other.m_t;
+  }
+  bool operator>(const IntersectionPoint& other) const {
+    return m_t > other.m_t;
+  }
+
+  void calcPOI(const Point3D& eye, const Vector3D& ray) {
+    m_poi = eye + m_t * ray;
+  }
+
+  double m_t;
+  Vector3D m_normal;
+  const GeometryNode* m_owner;
+
+  // Only valid after calcPOI is called.
+  Point3D m_poi;
+};
 
 bool solve3x2System(const Vector3D& A1, const Vector3D& A2, const Vector3D& B, Point2D& x);
 void tests();

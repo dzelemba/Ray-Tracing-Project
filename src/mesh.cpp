@@ -52,40 +52,56 @@ Mesh::Mesh(const std::vector<Point3D>& verts,
   m_boundingSphere = NonhierSphere(center, radius);
 }
 
-bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                     double& minT, Vector3D& normal) const
+bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offset, std::list<IntersectionPoint>& tVals) const
 {
   // Draw bouding sphere instead?
   // return m_boundingSphere.intersect(eye, ray, offset, minT, normal);
 
   // First intersect with our bounding sphere.
-  Vector3D dummyNorm;
-  double dummyMinT = minT;
-  if (!m_boundingSphere.intersect(eye, ray, offset, dummyMinT, dummyNorm)) {
+  std::list<IntersectionPoint> dummyTVals;
+  if (!m_boundingSphere.intersect(eye, ray, offset, dummyTVals)) {
     return false;
   }
 
-  bool found = false;
   for (std::vector<Polygon>::const_iterator it = m_polygons.begin(); it != m_polygons.end(); it++) {
-    if (it->intersect(eye, ray, offset, minT, normal)) {
-      found = true;
-    }
+    it->intersect(eye, ray, offset, tVals);
   }
 
-  return found;
+  return tVals.size() != 0;
 }
 
 bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offset, Point3D& poi) const
 {
-  double t = DBL_MAX; 
-  Vector3D normal;
-
-  if (intersect(eye, ray, offset, t, normal)) {
-    poi = eye + t * ray;
+  std::list<IntersectionPoint> tVals;
+  if (intersect(eye, ray, offset, tVals)) {
+    double minT = DBL_MAX;
+    for (std::list<IntersectionPoint>::iterator it = tVals.begin(); it != tVals.end(); it++) {
+      if (it->m_t < minT) {
+        minT = it->m_t;
+      }
+    }
+    poi = eye + minT * ray;
   
     return true;
   }
   return false; 
+}
+
+bool Mesh::containsPoint(const Point3D& p) const
+{
+  // Each polygon normal and point define a constraint of the polyhedra
+  for (std::vector<Polygon>::const_iterator it = m_polygons.begin(); it != m_polygons.end(); it++) {
+    if (!it->checkConstraint(p)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+Vector3D Mesh::getNormal(const Point3D& p) const
+{
+  return determinePolygon(p).getNormal(p);
 }
 
 Point2D Mesh::textureMapCoords(const Point3D& p) const

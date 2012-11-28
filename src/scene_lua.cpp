@@ -176,6 +176,42 @@ int gr_node_cmd(lua_State* L)
   return 1;
 }
 
+// Create an intersection node
+extern "C"
+int gr_intersection_node_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
+
+  const char* name = luaL_checkstring(L, 1);
+  data->node = new IntersectionNode(name);
+
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Create an difference node
+extern "C"
+int gr_difference_node_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
+
+  const char* name = luaL_checkstring(L, 1);
+  data->node = new DifferenceNode(name);
+
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
 // Create a sphere node
 extern "C"
 int gr_sphere_cmd(lua_State* L)
@@ -617,6 +653,8 @@ int gr_bump_cmd(lua_State* L)
 // If you want to add a new non-member function, add it here.
 static const luaL_reg grlib_functions[] = {
   {"node", gr_node_cmd},
+  {"intersectionNode", gr_intersection_node_cmd},
+  {"differenceNode", gr_difference_node_cmd},
   {"scene", gr_scene_cmd},
   {"sphere", gr_sphere_cmd},
   {"cone", gr_cone_cmd},

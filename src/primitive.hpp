@@ -2,86 +2,27 @@
 #define CS488_PRIMITIVE_HPP
 
 #include "algebra.hpp"
-#include <vector>
+#include <list>
 #include <iosfwd>
+#include "shapes.hpp"
 
 class Primitive {
  public:
   virtual ~Primitive();
+  virtual bool filteredIntersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                                 std::list<IntersectionPoint>& tVals) const;
   virtual bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                         double& minT, Vector3D& normal) const = 0;
+                         std::list<IntersectionPoint>& tVals) const = 0;
+  virtual bool containsPoint(const Point3D& p) const = 0;
   virtual Point2D textureMapCoords(const Point3D& p) const = 0;
+  virtual Vector3D getNormal(const Point3D& p) const = 0;
 
  protected:
   bool checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
                            const double A, const double B, const double C,
-                           double& minT) const;
+                           std::list<IntersectionPoint>& tVals) const;
 
   virtual bool checkPoint(const Point3D& poi) const;
-
-  Point3D m_lastPOI;
-};
-
-struct Plane {
-  Plane(const Vector3D& normal, const Point3D& p, const Vector3D& up = Vector3D(0.0, 1.0, 0.0))
-    : m_normal(normal), m_p(p), m_up(up), m_right(m_up.cross(m_normal))
-  {
-    m_normal.normalize();
-    m_up.normalize();
-    m_right.normalize(); 
-  }
-
-  double intersect(const Point3D& eye, const Vector3D& ray) const {
-    return m_normal.dot(m_p - eye) / ray.dot(m_normal);
-  }
-
-  void set_upVector(const Vector3D& up) {
-    m_up = up;
-    m_right = m_up.cross(m_normal);
-    m_up.normalize();
-    m_right.normalize();
-  }
-
-  Vector3D m_normal;
-  Point3D m_p;
-  Vector3D m_up;
-  Vector3D m_right;
-};
-
-class Polygon : public Primitive {
- public:
-  Polygon(std::vector<Point3D>& pts, const Vector3D& normal, const Vector3D& up = Vector3D(0.0, 1.0, 0.0));
-  virtual ~Polygon();
-
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
-  bool intersect(const Point3D& p) const;
-  Point2D textureMapCoords(const Point3D& p) const;
-
-  void set_upVector(const Vector3D& up) { m_plane.set_upVector(up); }
-
- private:
-  bool checkPointForLine(const Point3D& p, const Point3D& p1, const Point3D& p2,
-                         const Vector3D& normal) const;
-
-  std::vector<Point3D> m_verts;
-  Plane m_plane;
-};
-
-class Circle : public Primitive {
- public:
-  Circle(const Vector3D& normal, const Point3D& center, double radius);
-  Circle(const Vector3D& normal, const Point3D& center, double radius, const Vector3D& up);
-  virtual ~Circle();
-
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
-  Point2D textureMapCoords(const Point3D& p) const;
-
- private:
-  Plane m_plane;
-  Point3D m_center;
-  double m_radius;
 };
 
 class NonhierSphere : public Primitive {
@@ -93,7 +34,9 @@ public:
   virtual ~NonhierSphere();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
+                 std::list<IntersectionPoint>& tVals) const;
+  bool containsPoint(const Point3D& p) const;
+  Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
 private:
@@ -112,7 +55,9 @@ public:
   
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset, Point3D& poi) const;
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
+                 std::list<IntersectionPoint>& tVals) const;
+  bool containsPoint(const Point3D& p) const;
+  Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
 private:
@@ -132,7 +77,9 @@ public:
   virtual ~NonhierBox();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
+                 std::list<IntersectionPoint>& tVals) const;
+  bool containsPoint(const Point3D& p) const;
+  Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
 private:
@@ -147,7 +94,9 @@ public:
   virtual ~Sphere();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
+                 std::list<IntersectionPoint>& tVals) const;
+  bool containsPoint(const Point3D& p) const;
+  Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
 private:
@@ -165,7 +114,9 @@ class Cube : public Primitive {
   virtual ~Cube();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
+                 std::list<IntersectionPoint>& tVals) const;
+  bool containsPoint(const Point3D& p) const;
+  Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
  private:
@@ -182,7 +133,9 @@ class Cone : public Primitive {
   virtual ~Cone();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
+                 std::list<IntersectionPoint>& tVals) const;
+  bool containsPoint(const Point3D& p) const;
+  Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
  protected:
@@ -204,7 +157,9 @@ class Cylinder : public Primitive {
   virtual ~Cylinder();
 
   bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 double& minT, Vector3D& normal) const;
+                 std::list<IntersectionPoint>& tVals) const;
+  bool containsPoint(const Point3D& p) const;
+  Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
  protected:
