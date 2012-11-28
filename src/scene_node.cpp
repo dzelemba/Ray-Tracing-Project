@@ -261,17 +261,12 @@ Colour GeometryNode::refractionContribution(const Vector3D& viewDirection, const
 Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& viewDirection, 
                                           const Vector3D& normal) const
 {
-  m_material->calcDiffuse(m_primitive, m_totalTransform * poi);
-  
-  // First add ambient light.
-  Colour c = m_material->getAmbient(m_scene->ambient);
-
-  // Using Phong Lighting Model
+  // Determine which lights are visible
+  std::list<Light*> lights; 
   for (std::list<Light*>::const_iterator it = m_scene->lights.begin(); it != m_scene->lights.end(); it++) {
     Light* light = (*it);
 
     Vector3D lightDirection = light->position - poi; // Note this needs to point towards the light.
-    double r = lightDirection.length();
     lightDirection.normalize();
 
     // Check if we get a contribution from this light (i.e. check if any objects are in the way)
@@ -286,15 +281,9 @@ Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& vi
       continue;
     }
 
-    Colour contribution = m_material->getCoefficient(normal, lightDirection, viewDirection) * 
-                          light->colour * lightDirection.dot(normal) * 
-                          (1 / (light->falloff[0] + light->falloff[1] * r + light->falloff[2] * r * r)); 
-
-    // Ignore negative contributions
-    if (contribution.R() >= 0 && contribution.G() >= 0 && contribution.B() >= 0) {
-      c = c + contribution;
-    }
+    lights.push_back(light);
   }
 
-  return c;
+  return m_material->getColour(normal, viewDirection, lights, m_scene->ambient,
+                               m_totalTransform * poi, m_primitive);
 }

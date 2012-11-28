@@ -595,6 +595,23 @@ int gr_node_gc_cmd(lua_State* L)
   return 0;
 }
 
+// Give a material a bump map
+extern "C"
+int gr_bump_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_material_ud* data = (gr_material_ud*)luaL_checkudata(L, 1, "gr.material");
+  luaL_argcheck(L, data != 0, 1, "Material expected");
+
+  PhongMaterial* m = data->material;
+
+  const char* filename = luaL_checkstring(L, 2);
+  m->bump(filename);
+
+  return 0;
+}
+
 // This is where all the "global" functions in our library are
 // declared.
 // If you want to add a new non-member function, add it here.
@@ -612,6 +629,7 @@ static const luaL_reg grlib_functions[] = {
   {"nh_box", gr_nh_box_cmd},
   {"mesh", gr_mesh_cmd},
   {"light", gr_light_cmd},
+  {"bump", gr_bump_cmd},
   {0, 0}
 };
 
@@ -652,7 +670,6 @@ Scene* import_lua(const std::string& filename)
   luaL_openlibs(L);
 
   GRLUA_DEBUG("Setting up our functions");
-
 
   // Set up the metatable for gr.node
   luaL_newmetatable(L, "gr.node");

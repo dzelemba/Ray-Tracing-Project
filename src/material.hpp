@@ -3,8 +3,10 @@
 
 #include "algebra.hpp"
 #include "image.hpp"
+#include <list>
 
 class Primitive;
+class Light;
 
 class PhongMaterial {
  public:
@@ -12,10 +14,11 @@ class PhongMaterial {
                 double transparency, double refractiveIndex);
   virtual ~PhongMaterial();
 
-  void calcDiffuse(const Primitive* primitive, const Point3D& p);
-  Colour getCoefficient(const Vector3D& normal, const Vector3D& light,
-                        const Vector3D& view) const;
-  Colour getAmbient(const Colour& ambient) const;
+  Colour getColour(const Vector3D& normal, const Vector3D& viewDirection,
+                   const std::list<Light*>& lights, const Colour& ambient,
+                   const Point3D& poi, const Primitive* primitive) const;
+
+  void bump(const std::string& filename);
 
   const double m_transparency;
   const double m_refractiveIndex;
@@ -27,7 +30,10 @@ class PhongMaterial {
   double m_shininess;
 
  private:
-  Colour m_tempDiffuse;
+  Vector3D bumpNormal(const Vector3D& n, const Primitive* primitive, const Point3D& p) const;
+
+  bool m_bump;
+  Image m_bumpMap;
 };
 
 class BasicMaterial : public PhongMaterial {
