@@ -15,10 +15,13 @@ int main(int argc, char** argv)
   }
 
   Renderer* renderer = NULL;
+  int numCores = 1;
   if (argc >= 3) {
     for (int i = 1; i < argc - 1; i++) {
       if (std::string(argv[i]) == "-s") {
         renderer = new StochasticRenderer(scene);
+      } else if (std::string(argv[i]) == "-c") {
+        numCores = atoi(argv[i+1]);
       }
     }
   }
@@ -26,7 +29,7 @@ int main(int argc, char** argv)
     renderer = new BasicRenderer(scene);
   }
 
-  renderer->render(outfile);
+  renderer->render(outfile, numCores);
   delete renderer;
 }
 

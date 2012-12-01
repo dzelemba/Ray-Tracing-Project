@@ -10,7 +10,9 @@ class Renderer {
  public:
   Renderer(const Scene* scene);
   virtual ~Renderer();
-  void render(const std::string& filename);
+  void render(const std::string& filename, const int numThreads);
+
+  void renderRows(const int startRow, const int numRows);
 
  protected:
   virtual Colour getPixelColour(const int x, const int y) = 0;

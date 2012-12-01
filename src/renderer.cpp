@@ -1,5 +1,25 @@
 #include "renderer.hpp"
 #include <iostream>
+#include <pthread.h>
+#include <vector>
+
+/*
+  Wrapper types and functions for the creation of new threads
+*/
+
+struct Args {
+  Renderer* renderer;
+  int startRow;
+  int numRows;
+};
+
+void* startThread(void* data)
+{
+  struct Args* args = (struct Args*)data;
+  args->renderer->renderRows(args->startRow, args->numRows);
+
+  return NULL;
+}
 
 /*
   *************** Renderer **************
@@ -15,24 +35,41 @@ Renderer::~Renderer()
 {
 }
 
-void Renderer::render(const std::string& filename)
+void Renderer::render(const std::string& filename, const int numThreads)
 {
-  for (int y = 0; y < scene->height; y++) {
+  std::vector<pthread_t*> threads;
+  int rowsPerThread = scene->height / numThreads;
+  struct Args* data = new Args[numThreads];
+  for (int i = 0; i < numThreads; i++) {
+    pthread_t* thread = new pthread_t;
+    threads.push_back(thread);
+
+    data[i].renderer = this;
+    data[i].startRow = i * rowsPerThread;
+    data[i].numRows = rowsPerThread + (i == numThreads - 1 ? scene->height % numThreads : 0);
+    pthread_create(thread, NULL, &startThread, (void *)&data[i]);
+  }
+
+  for (std::vector<pthread_t*>::iterator it = threads.begin(); it != threads.end(); it++) {
+    pthread_join(**it, NULL);
+    delete *it;
+  }
+  delete [] data;
+  
+  img.savePng(filename);
+}
+
+void Renderer::renderRows(const int startRow, const int numRows)
+{
+  for (int y = startRow; y < startRow + numRows; y++) {
     for (int x = 0; x < scene->width; x++) {
       Colour c = getPixelColour(x, y);
       img(x, y, 0) = c.R();
       img(x, y, 1) = c.G();
       img(x, y, 2) = c.B();
     }
-    if (y % (scene->height / 10) == 0) {
-      std::cerr << 10 * (y / (scene->height / 10)) << "% .. ";
-    }
   }
-  std::cerr << std::endl;
-
-  img.savePng(filename);
 }
-
 /*
   *************** BasicRenderer **************
 */
