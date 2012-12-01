@@ -20,7 +20,7 @@ bool Polygon::checkPointForLine(const Point3D& p, const Point3D& p1, const Point
   Vector3D v = p1 - p2;
   Vector3D planeNormal = v.cross(normal);
 
-  return planeNormal.dot(p - p1) < epsilon;
+  return planeNormal.dot(p - p1) < tightEpsilon;
 }
 
 bool Polygon::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
@@ -47,7 +47,7 @@ Vector3D Polygon::getNormal(const Point3D& p) const
 
 bool Polygon::checkConstraint(const Point3D& p) const
 {
-  return m_plane.m_normal.dot(p - m_plane.m_p) < epsilon;
+  return m_plane.m_normal.dot(p - m_plane.m_p) < tightEpsilon;
 }
 
 bool Polygon::intersect(const Point3D& p) const
@@ -85,9 +85,6 @@ Point2D Polygon::textureMapCoords(const Point3D& p) const
   for (std::vector<Point3D>::const_iterator it = m_verts.begin(); it != m_verts.end(); it++) {
     Vector3D v = *it - center;
     if (solve3x2System(m_plane.m_up, m_plane.m_right, v, coords)) {
-      if (coords[0] > 100000) {
-        std::cerr << coords << " " << m_plane.m_up << " " << m_plane.m_right << " " << v << std::endl;
-      }
       if (coords[0] < minX) minX = coords[0];
       if (coords[0] > maxX) maxX = coords[0];
       if (coords[1] < minY) minY = coords[1];

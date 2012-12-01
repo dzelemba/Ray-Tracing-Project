@@ -24,8 +24,8 @@ bool Primitive::filteredIntersect(const Point3D& eye, const Vector3D& ray, const
     curr++;
     for (; prev != tValues.end(); curr++, prev++) {
       if (equal(curr->m_t, prev->m_t)) {
-        if (containsPoint(eye + (curr->m_t + 100 * epsilon) * ray) ||
-            containsPoint(eye + (curr->m_t - 100 * epsilon) * ray)) {
+        if (containsPoint(eye + (curr->m_t + 100 * tightEpsilon) * ray) ||
+            containsPoint(eye + (curr->m_t - 100 * tightEpsilon) * ray)) {
           // Now if there's more than 2 we should remove them as well
           for ( ; equal(curr->m_t, prev->m_t) && curr != tValues.end(); curr++, prev++) {
             pointsToRemove.push_back(curr);

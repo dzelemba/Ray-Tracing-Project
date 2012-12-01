@@ -23,7 +23,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-static double epsilon = 0.0000001;
+const double epsilon = 0.0001;
+const double tightEpsilon = 0.0000001;
 
 // Convience functions for epsilon checks
 

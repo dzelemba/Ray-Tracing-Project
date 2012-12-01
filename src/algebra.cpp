@@ -15,7 +15,7 @@
 #include "algebra.hpp"
 
 bool equal(const double d1, const double d2) {
-  return d1 > d2 - epsilon && d1 < d2 + epsilon;
+  return d1 > d2 - tightEpsilon && d1 < d2 + tightEpsilon;
 }
 
 double Vector3D::normalize()
