@@ -4,6 +4,6 @@
 numCores=`grep -c ^processor /proc/cpuinfo`
 
 cd ../data
-../src/rt -c $numCores ${1}.lua 
+time ../src/rt -c $numCores ${1}.lua 
 xdg-open ${1}.png
 cd ../src

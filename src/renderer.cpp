@@ -26,8 +26,8 @@ void* startThread(void* data)
 */
 
 Renderer::Renderer(const Scene* scene) :
-  scene(scene),
-  img(scene->width, scene->height, 3)
+  m_scene(scene),
+  m_img(m_scene->width, m_scene->height, 3)
 {
 }
 
@@ -38,7 +38,7 @@ Renderer::~Renderer()
 void Renderer::render(const std::string& filename, const int numThreads)
 {
   std::vector<pthread_t*> threads;
-  int rowsPerThread = scene->height / numThreads;
+  int rowsPerThread = m_scene->height / numThreads;
   struct Args* data = new Args[numThreads];
   for (int i = 0; i < numThreads; i++) {
     pthread_t* thread = new pthread_t;
@@ -46,7 +46,7 @@ void Renderer::render(const std::string& filename, const int numThreads)
 
     data[i].renderer = this;
     data[i].startRow = i * rowsPerThread;
-    data[i].numRows = rowsPerThread + (i == numThreads - 1 ? scene->height % numThreads : 0);
+    data[i].numRows = rowsPerThread + (i == numThreads - 1 ? m_scene->height % numThreads : 0);
     pthread_create(thread, NULL, &startThread, (void *)&data[i]);
   }
 
@@ -56,17 +56,17 @@ void Renderer::render(const std::string& filename, const int numThreads)
   }
   delete [] data;
   
-  img.savePng(filename);
+  m_img.savePng(filename);
 }
 
 void Renderer::renderRows(const int startRow, const int numRows)
 {
   for (int y = startRow; y < startRow + numRows; y++) {
-    for (int x = 0; x < scene->width; x++) {
+    for (int x = 0; x < m_scene->width; x++) {
       Colour c = getPixelColour(x, y);
-      img(x, y, 0) = c.R();
-      img(x, y, 1) = c.G();
-      img(x, y, 2) = c.B();
+      m_img(x, y, 0) = c.R();
+      m_img(x, y, 1) = c.G();
+      m_img(x, y, 2) = c.B();
     }
   }
 }
@@ -85,8 +85,8 @@ BasicRenderer::~BasicRenderer()
 
 Colour BasicRenderer::getPixelColour(const int x, const int y)
 {
-  Colour c = scene->getBackground(x, y);
-  scene->intersect(((double)scene->width / 2.0) - (double)x, ((double)scene->height / 2.0) - (double)y, c);
+  Colour c = m_scene->getBackground(x, y);
+  m_scene->intersect(((double)m_scene->width / 2.0) - (double)x, ((double)m_scene->height / 2.0) - (double)y, c);
   return c;
 }
 
@@ -109,8 +109,8 @@ Colour StochasticRenderer::getPixelColour(const int x, const int y)
   // Stocastic Sampling.
   // Break the pixel into subpixels and cast a random ray in each subpixel.
   // Weight the samples using a gaussian distribution based on distance from pixel.
-  double pixelY = ((double)scene->height / 2) - (double)y;
-  double pixelX = ((double)scene->width / 2) - (double)x;
+  double pixelY = ((double)m_scene->height / 2) - (double)y;
+  double pixelX = ((double)m_scene->width / 2) - (double)x;
 
   int gridSize = sqrt(RAYS_PER_PIXEL);
   double stepSize = 1.0 / (double)gridSize;
@@ -128,8 +128,8 @@ Colour StochasticRenderer::getPixelColour(const int x, const int y)
       double dy = pixelY + xOff;
 
       // Now we intersect this ray with our scene and get a colour back.
-      Colour sample = scene->getBackground(x, y);
-      scene->intersect(dx, dy, sample);
+      Colour sample = m_scene->getBackground(x, y);
+      m_scene->intersect(dx, dy, sample);
 
       double distSquared = xOff * xOff + yOff * yOff; 
       double weight = (1.0 / sqrt(2 * M_PI)) * exp(-1.0/2.0 * distSquared);
@@ -140,4 +140,42 @@ Colour StochasticRenderer::getPixelColour(const int x, const int y)
   c = (1.0 / totalWeight) * c;
 
   return c;
+}
+
+/*
+  *************** DepthOfFieldRenderer **************
+*/
+
+DepthOfFieldRenderer::DepthOfFieldRenderer(const Scene* scene, const Point3D& focalPlanePoint) :
+  Renderer(scene),
+  m_focalPlane(m_scene->getView(), focalPlanePoint)
+{
+}
+
+DepthOfFieldRenderer::~DepthOfFieldRenderer()
+{
+}
+  
+Colour DepthOfFieldRenderer::getPixelColour(const int x, const int y)
+{
+  double pixelY = ((double)m_scene->height / 2) - (double)y;
+  double pixelX = ((double)m_scene->width / 2) - (double)x;
+
+  // First we need to get our point on the focal plane;
+  Vector3D ray = m_scene->getRay(pixelX, pixelY);
+  Point3D eye = m_scene->getEye();
+  Point3D focalPoint = eye + (m_focalPlane.intersect(eye, ray)) * ray;
+
+  static const int sampleRays = 10;
+  Colour c(0.0);
+  for (int i = 0; i < sampleRays; i++) {
+    Point3D offsetEye = m_scene->getJitteredEye(); 
+    Vector3D offsetRay = focalPoint - offsetEye; 
+    
+    Colour sample = m_scene->getBackground(x, y);
+    m_scene->intersect(offsetEye, offsetRay, sample);
+    c = c + sample;
+  }
+
+  return (1.0 / (double)sampleRays) * c;
 }

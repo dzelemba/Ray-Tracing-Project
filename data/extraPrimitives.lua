@@ -51,6 +51,6 @@ white_light = gr.light({-100.0, 150.0, 400.0}, {0.9, 0.9, 0.9}, {1, 0, 0})
 
 scene = gr.scene(root, 500, 500,
                  {0, 1, 10}, {0, 0, -1}, {0, 1, 0}, 50,
-                 {0.3, 0.3, 0.3}, {white_light, orange_light})
+                 {0.3, 0.3, 0.3}, {white_light})
 
 return scene;

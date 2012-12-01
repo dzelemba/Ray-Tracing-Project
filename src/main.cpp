@@ -15,16 +15,20 @@ int main(int argc, char** argv)
   }
 
   Renderer* renderer = NULL;
+  if (scene->hasFocalPlane()) {
+    renderer = new DepthOfFieldRenderer(scene, scene->getFocalPlanePoint());  
+  }
   int numCores = 1;
   if (argc >= 3) {
     for (int i = 1; i < argc - 1; i++) {
-      if (std::string(argv[i]) == "-s") {
+      if (std::string(argv[i]) == "-s" && !renderer) {
         renderer = new StochasticRenderer(scene);
       } else if (std::string(argv[i]) == "-c") {
         numCores = atoi(argv[i+1]);
       }
     }
   }
+
   if (renderer == NULL) {
     renderer = new BasicRenderer(scene);
   }

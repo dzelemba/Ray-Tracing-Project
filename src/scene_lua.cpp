@@ -112,6 +112,8 @@ int gr_scene_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
 
+  int numArgs = lua_gettop(L);
+
   gr_scene_ud* data = (gr_scene_ud*)lua_newuserdata(L, sizeof(gr_scene_ud));
   data->scene = 0;
 
@@ -151,6 +153,12 @@ int gr_scene_cmd(lua_State* L)
   data->scene = new Scene(root->node, width, height,
                           eye, view, up, fov,
                           ambient, lights);
+
+  if (numArgs > 9) {
+    double focalPoint[3];
+    get_tuple(L, 10, focalPoint, 3);
+    data->scene->setFocalPlanePoint(Point3D(focalPoint[0], focalPoint[1], focalPoint[2]));
+  }
  
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);

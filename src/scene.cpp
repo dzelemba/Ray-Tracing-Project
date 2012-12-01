@@ -19,7 +19,9 @@ Scene::Scene(SceneNode* root,
   fov(fov),
   screenDist(((double)std::max(width, height) / 2.0) / tan(M_PI * fov / 360)),
   backgroundDist(screenDist + 1000.0), // TODO: Do this properly. Just assume nothing is past 1000 for now.
-  background(std::vector<Point3D>(), std::vector<std::vector<int> >())
+  background(std::vector<Point3D>(), std::vector<std::vector<int> >()),
+  m_focalPlanePoint(),
+  m_hasFocalPlane(false)
 {
   this->view.normalize();
   this->up.normalize();
@@ -29,6 +31,7 @@ Scene::Scene(SceneNode* root,
 
   // Create a mesh to represent the background 
   // Used in determining background colour of ray that misses entire scene.
+  // TODO: Change this to a plane (and texture map maybe)
   Point3D backgroundCenter = this->eye + (backgroundDist) * this->view;
 
   std::vector<Point3D> vertices;
@@ -55,8 +58,25 @@ Scene::Scene(SceneNode* root,
 
 bool Scene::intersect(const double dx, const double dy, Colour& c) const
 {
-  Vector3D ray = screenDist * view + dy * up + dx * left;
-  return root->intersect(eye, ray, 0.0, c);
+  return intersect(eye, getRay(dx, dy), c);
+}
+
+bool Scene::intersect(const Point3D& start, const Vector3D& ray, Colour &c) const
+{
+  return root->intersect(start, ray, 0.0, c);
+}
+
+Point3D Scene::getJitteredEye() const
+{
+  double xOffset = (((double)rand() / (double)RAND_MAX) - 0.5);
+  double yOffset = (((double)rand() / (double)RAND_MAX) - 0.5);
+
+  return eye + xOffset * left + yOffset * up;
+}
+
+Vector3D Scene::getRay(const double dx, const double dy) const
+{
+  return screenDist * view + dy * up + dx * left;
 }
 
 Colour Scene::getBackground(const int x, const int y) const

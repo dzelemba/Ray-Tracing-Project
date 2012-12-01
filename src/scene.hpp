@@ -16,12 +16,27 @@ class Scene {
         const std::list<Light*> lights);
 
   bool intersect(const double dx, const double dy, Colour &c) const;
+  bool intersect(const Point3D& start, const Vector3D& ray, Colour &c) const;
+
+  Point3D getJitteredEye() const;
+  Vector3D getRay(const double dx, const double dy) const;
 
   // Returns background colour based on screen coordinates.
   Colour getBackground(const int x, const int y) const;
 
   // Returns backgroun colour based on ray that missed entire scene.
   Colour getBackground(const Point3D& eye, const Vector3D& ray) const;
+
+  // Needed by DepthOfFieldRenderer.
+  const Vector3D& getView() const { return view; }
+  const Point3D& getEye() const { return eye; }
+
+  void setFocalPlanePoint(const Point3D& p) {
+    m_focalPlanePoint = p;
+    m_hasFocalPlane = true;
+  }
+  bool hasFocalPlane() { return m_hasFocalPlane; }
+  const Point3D& getFocalPlanePoint() { return m_focalPlanePoint; }
 
   // Image Size
   const int height;
@@ -44,6 +59,10 @@ class Scene {
 
   int backgroundDist;
   Mesh background;
+
+  // Depth of Field
+  Point3D m_focalPlanePoint;
+  bool m_hasFocalPlane;
 };
 
 #endif

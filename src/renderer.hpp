@@ -5,6 +5,7 @@
 #include "image.hpp"
 #include "scene.hpp"
 #include "algebra.hpp"
+#include "shapes.hpp"
 
 class Renderer {
  public:
@@ -17,8 +18,8 @@ class Renderer {
  protected:
   virtual Colour getPixelColour(const int x, const int y) = 0;
 
-  const Scene* scene;
-  Image img;
+  const Scene* m_scene;
+  Image m_img;
 };
 
 class BasicRenderer : public Renderer {
@@ -41,4 +42,17 @@ class StochasticRenderer : public Renderer {
  private:
   const int RAYS_PER_PIXEL;
 };
+
+class DepthOfFieldRenderer : public Renderer {
+ public:
+  DepthOfFieldRenderer(const Scene* scene, const Point3D& focalPlanePoint);
+  virtual ~DepthOfFieldRenderer();
+
+ protected:
+  virtual Colour getPixelColour(const int x, const int y);
+
+ private:
+  Plane m_focalPlane;
+};
+
 #endif
