@@ -107,6 +107,14 @@ Colour BasicMaterial::getDiffuse(const Primitive* primitive, const Point3D& p) c
   return m_kd;
 }
 
+bool BasicMaterial::hasZeroAlpha(const Primitive* primitive, const Point3D& p) const
+{
+  (void)primitive;
+  (void)p;
+
+  return false;
+}
+
 /*
   *************** TextureMap ***************
 */
@@ -127,18 +135,39 @@ TextureMap::~TextureMap()
 
 Colour TextureMap::getDiffuse(const Primitive* primitive, const Point3D& p) const
 {
+  int coords[2];
+  getMapCoords(primitive, p, coords);
+
+  int x = coords[0];
+  int y = coords[1];
+
+  return Colour(m_textureMap(x, y, 0),
+                m_textureMap(x, y, 1),
+                m_textureMap(x, y, 2));
+}
+
+bool TextureMap::hasZeroAlpha(const Primitive* primitive, const Point3D& p) const
+{
+  if (m_textureMap.elements() < 4) {
+    return false;
+  }
+
+  int coords[2];
+  getMapCoords(primitive, p, coords);
+
+  return m_textureMap(coords[0], coords[1], 3) == 0;
+}
+
+void TextureMap::getMapCoords(const Primitive* primitive, const Point3D& p, int coords[2]) const
+{
   Point2D mapCoords = primitive->textureMapCoords(p);
 
-  int x = mapCoords[0] * (double)m_textureMap.width();
-  int y = mapCoords[1] * (double)m_textureMap.height();
+  int x = coords[0] = mapCoords[0] * (double)m_textureMap.width();
+  int y = coords[1] = mapCoords[1] * (double)m_textureMap.height();
   
   if (x < 0 || x > m_textureMap.width() || y < 0 || y > m_textureMap.height()) {
     std::cerr << "Bad Texture Map Coordinates Returned: " << mapCoords[0] << " " << x
               << " " << mapCoords[1] << " " << y << std::endl;
     return Colour(0.0);
   }
-
-  return Colour(m_textureMap(x, y, 0),
-                m_textureMap(x, y, 1),
-                m_textureMap(x, y, 2));
 }

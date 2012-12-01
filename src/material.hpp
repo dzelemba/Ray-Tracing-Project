@@ -20,6 +20,10 @@ class PhongMaterial {
 
   void bump(const std::string& filename);
 
+  // Texture mapped images might have an alpha channel
+  // So we should avoid hits where this is the case.
+  virtual bool hasZeroAlpha(const Primitive* primitive, const Point3D& p) const = 0;
+
   const double m_transparency;
   const double m_refractiveIndex;
 
@@ -42,6 +46,8 @@ class BasicMaterial : public PhongMaterial {
            double transparency, double refractiveIndex);
   virtual ~BasicMaterial();
 
+  bool hasZeroAlpha(const Primitive* primitive, const Point3D& p) const;
+
  protected:
   Colour getDiffuse(const Primitive* primitive, const Point3D& p) const;
 
@@ -55,10 +61,14 @@ class TextureMap : public PhongMaterial {
              double transparency, double refractiveIndex);
   virtual ~TextureMap();
 
+  bool hasZeroAlpha(const Primitive* primitive, const Point3D& p) const;
+
  protected:
   Colour getDiffuse(const Primitive* primitive, const Point3D& p) const;
 
  private:
+  void getMapCoords(const Primitive* primitve, const Point3D& p, int coords[2]) const;  
+
   Image m_textureMap;
 };
 
