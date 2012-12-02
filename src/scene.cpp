@@ -51,9 +51,6 @@ Scene::Scene(SceneNode* root,
   faces.push_back(face1);
 
   background = Mesh(vertices, faces);
-
-  // Cache transforms (needed for texture mapping)
-  root->cacheTransforms();
 }
 
 bool Scene::intersect(const double dx, const double dy, Colour& c) const

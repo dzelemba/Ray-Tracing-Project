@@ -44,6 +44,7 @@
 #include "lua488.hpp"
 #include "light.hpp"
 #include "primitive.hpp"
+#include "image_primitive.hpp"
 
 // Uncomment the following line to enable debugging messages
 // #define GRLUA_ENABLE_DEBUG
@@ -285,6 +286,24 @@ int gr_cube_cmd(lua_State* L)
   
   const char* name = luaL_checkstring(L, 1);
   data->node = new GeometryNode(name, new Cube());
+
+  luaL_getmetatable(L, "gr.node");
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Create a square node
+extern "C"
+int gr_square_cmd(lua_State* L)
+{
+  GRLUA_DEBUG_CALL;
+  
+  gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
+  data->node = 0;
+  
+  const char* name = luaL_checkstring(L, 1);
+  data->node = new GeometryNode(name, new ImagePrimitive());
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -671,6 +690,7 @@ static const luaL_reg grlib_functions[] = {
   {"textureMap", gr_textureMap_cmd},
   // New for assignment 4
   {"cube", gr_cube_cmd},
+  {"square", gr_square_cmd},
   {"nh_sphere", gr_nh_sphere_cmd},
   {"nh_box", gr_nh_box_cmd},
   {"mesh", gr_mesh_cmd},

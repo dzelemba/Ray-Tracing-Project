@@ -100,3 +100,11 @@ void SegmentList::getValidSegments(const double offset, list<Segment>& segments)
   }
   segments.sort();
 }
+
+void SegmentList::transformNormals(const Matrix4x4& m)
+{
+  for (list<Segment>::iterator it = m_segments.begin(); it != m_segments.end(); it++) {
+    it->m_start.m_normal = m * it->m_start.m_normal;
+    it->m_end.m_normal = m * it->m_end.m_normal;
+  }
+}

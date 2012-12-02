@@ -64,9 +64,7 @@ public:
 
   static void setScene(const Scene* scene) { m_scene = scene; }
 
-  void cacheTransforms();
 protected:
-  virtual void cacheTransforms(const Matrix4x4& rayTrans, const Matrix4x4& normalTrans);
   virtual void combineSegments(SegmentList& s1, SegmentList& s2) const;
 
   // Useful for picking
@@ -124,8 +122,6 @@ public:
                                  SegmentList& tVals) const;
 
 protected:
-  void cacheTransforms(const Matrix4x4& rayTrans, const Matrix4x4& normalTrans);
-
   PhongMaterial* m_material;
   Primitive* m_primitive;
 
@@ -136,15 +132,8 @@ private:
                                 const double refractiveIndex, int recursiveDepth) const;
   Colour refractionContribution(const Vector3D& viewDirection, const Vector3D& normal, const Point3D& poi,
                                 const double refractiveIndex, int recursiveDepth) const;
-  Colour getLightContribution(const Point3D& poi, const Vector3D& viewDirection, const Vector3D& normal) const;
-
-  // Total transform going up the hierarchy applied to the poi (Mk^-1 * ... M1^-1 )p
-  // Also happens to be the same as the total transformation applied to eye, ray 
-  // going down the hierarchy.
-  Matrix4x4 m_totalPointTransform;
-
-  // Total transform going up the hierarchy applied to normal (M1^-T * ... Mk^-T)n
-  Matrix4x4 m_totalNormalTransform;
+  Colour getLightContribution(const IntersectionPoint& poi, const Vector3D& viewDirection,
+                              const Vector3D& normal) const;
 };
 
 #endif

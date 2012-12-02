@@ -46,6 +46,8 @@ class SegmentList {
   bool getMin(const double offset, IntersectionPoint& poi);
   void getValidSegments(const double offset, list<Segment>& segments);
 
+  void transformNormals(const Matrix4x4& m);
+
  private:
   list<Segment> m_segments;
 };

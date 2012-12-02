@@ -78,22 +78,8 @@ void SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double 
       (*it)->intersect(transEye, transRay, offset, childSegments);
       combineSegments(childSegments, tVals);
     }
-  }
-}
 
-void SceneNode::cacheTransforms()
-{
-  for (std::list<SceneNode*>::iterator it = m_children.begin(); it != m_children.end(); it++) {
-    (*it)->cacheTransforms(m_invtrans, m_invtrans.transpose());
-  }
-}
-
-void SceneNode::cacheTransforms(const Matrix4x4& rayTrans, const Matrix4x4& normalTrans)
-{
-  Matrix4x4 thisRayTrans = m_invtrans * rayTrans;
-  Matrix4x4 thisNormalTrans = normalTrans * m_invtrans.transpose();
-  for (std::list<SceneNode*>::iterator it = m_children.begin(); it != m_children.end(); it++) {
-    (*it)->cacheTransforms(thisRayTrans, thisNormalTrans);
+    tVals.transformNormals(m_invtrans.transpose());
   }
 }
 
@@ -141,9 +127,7 @@ void DifferenceNode::combineSegments(SegmentList& s1, SegmentList& s2) const
 
 GeometryNode::GeometryNode(const std::string& name, Primitive* primitive)
   : SceneNode(name),
-    m_primitive(primitive),
-    m_totalPointTransform(),
-    m_totalNormalTransform()
+    m_primitive(primitive)
 {
 }
 
@@ -158,18 +142,23 @@ void GeometryNode::intersect(const Point3D& eye, const Vector3D& ray, const doub
   const Point3D transEye = m_invtrans * eye;
   const Vector3D transRay = m_invtrans * ray;
 
+
   std::list<IntersectionPoint> tValues;
   if (m_primitive->filteredIntersect(transEye, transRay, offset, tValues)) { 
-    for (std::list<IntersectionPoint>::iterator it = tValues.begin(); it != tValues.end(); it++) {
-      tVals.insert(*it, *(it++ ), this);
+    std::list<IntersectionPoint>::iterator it = tValues.begin();
+    std::list<IntersectionPoint>::iterator next = tValues.begin();
+    next++;
+    for (; it != tValues.end(); it++, it++, next++, next++) {
+      // Filter out points that map to an alpha value of 0.
+      if (!m_material->hasZeroAlpha(m_primitive, transEye + it->m_t * transRay)) {
+        it->calcPrimitivePOI(transEye, transRay);
+        next->calcPrimitivePOI(transEye, transRay);
+        tVals.insert(*it, *next, this);
+      } 
     }
-  }
-}
 
-void GeometryNode::cacheTransforms(const Matrix4x4& rayTrans, const Matrix4x4& normalTrans)
-{
-  m_totalPointTransform = m_invtrans * rayTrans;
-  m_totalNormalTransform = normalTrans * m_invtrans.transpose();
+    tVals.transformNormals(m_invtrans.transpose());
+  }
 }
 
 Colour GeometryNode::getColour(const Point3D& eye, const IntersectionPoint& poi, 
@@ -179,7 +168,7 @@ Colour GeometryNode::getColour(const Point3D& eye, const IntersectionPoint& poi,
 
   // Normalize the normal
   // Check if we're inside an object and flip the normal if we are.
-  Vector3D norm = m_totalNormalTransform * poi.m_normal;
+  Vector3D norm = poi.m_normal;
   if (refractiveIndex != 1.0) {
     norm = -1 * norm;
   }
@@ -210,7 +199,7 @@ Colour GeometryNode::getColour(const Point3D& eye, const IntersectionPoint& poi,
   // Now add contributions of all light sources.
   double materialCoeff = 1.0 - transparency;
   if (materialCoeff > 0) {
-    c = c + materialCoeff * getLightContribution(poi.m_poi, viewDirection, norm);
+    c = c + materialCoeff * getLightContribution(poi, viewDirection, norm);
   }
   
   return c;
@@ -284,7 +273,7 @@ Colour GeometryNode::refractionContribution(const Vector3D& viewDirection, const
   }
 }
 
-Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& viewDirection, 
+Colour GeometryNode::getLightContribution(const IntersectionPoint& poi, const Vector3D& viewDirection, 
                                           const Vector3D& normal) const
 {
   // Determine which lights are visible
@@ -292,15 +281,15 @@ Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& vi
   for (std::list<Light*>::const_iterator it = m_scene->lights.begin(); it != m_scene->lights.end(); it++) {
     Light* light = (*it);
 
-    Vector3D lightDirection = light->position - poi; // Note this needs to point towards the light.
+    Vector3D lightDirection = light->position - poi.m_poi; // Note this needs to point towards the light.
     lightDirection.normalize();
 
     // Check if we get a contribution from this light (i.e. check if any objects are in the way)
     // Ignore transparent objects.
     // TODO: Add supprt for non-fully transparent objects.
-    // TODO: If ever start doing CSG with Refractive materials this won't work.
+    // TODO: If we ever start doing CSG with Refractive materials this won't work.
     SegmentList segments;
-    m_scene->root->intersect(poi, lightDirection, epsilon, segments);
+    m_scene->root->intersect(poi.m_poi, lightDirection, epsilon, segments);
     std::list<Segment> segs;
     segments.getValidSegments(epsilon, segs);
     bool exit = false;
@@ -318,5 +307,5 @@ Colour GeometryNode::getLightContribution(const Point3D& poi, const Vector3D& vi
   }
 
   return m_material->getColour(normal, viewDirection, lights, m_scene->ambient,
-                               m_totalPointTransform * poi, m_primitive);
+                               poi.m_primitivePOI, m_primitive);
 }

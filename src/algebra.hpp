@@ -544,12 +544,21 @@ struct IntersectionPoint {
     m_poi = eye + m_t * ray;
   }
 
+  void calcPrimitivePOI(const Point3D& eye, const Vector3D& ray) {
+    m_primitivePOI = eye + m_t * ray;
+  }
+
   double m_t;
   Vector3D m_normal;
   const GeometryNode* m_owner;
 
   // Only valid after calcPOI is called.
+  // World Coords
   Point3D m_poi;
+
+  // Only valid after calcPrimitivePOI is called.
+  // Primitive Coords
+  Point3D m_primitivePOI;
 };
 
 bool solve3x2System(const Vector3D& A1, const Vector3D& A2, const Vector3D& B, Point2D& x);

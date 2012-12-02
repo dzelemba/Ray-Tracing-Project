@@ -60,7 +60,7 @@ bool Primitive::checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, con
                                     std::list<IntersectionPoint>& tVals) const
 {
   bool pointFound = false;
-
+  
   double roots[2];
   int numRoots = quadraticRoots(A, B, C, roots); 
   if (numRoots != 0) {
@@ -182,11 +182,11 @@ NonhierBox::NonhierBox(const Point3D& pos, double size)
 
   std::vector<Vector3D> upVectors;
   upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
+  upVectors.push_back(Vector3D(0.0, 0.0, -1.0));
+  upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
+  upVectors.push_back(Vector3D(0.0, -1.0, 0.0));
   upVectors.push_back(Vector3D(0.0, 0.0, 1.0));
-  upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
-  upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
-  upVectors.push_back(Vector3D(0.0, 0.0, 1.0));
-  upVectors.push_back(Vector3D(0.0, 1.0, 0.0));
+  upVectors.push_back(Vector3D(0.0, -1.0, 0.0));
 
   m_box = Mesh(vertices, f, upVectors);
 }
@@ -358,8 +358,8 @@ int Cone::determineRegion(const Point3D& p) const
 */
 
 Cylinder::Cylinder()
-  : m_top(Vector3D(0.0, 0.0, 1.0), Point3D(0.0, 0.0, 1.0), 1.0),
-    m_bottom(Vector3D(0.0, 0.0, -1.0), Point3D(0.0, 0.0, 0.0), 1.0)
+  : m_top(Vector3D(0.0, 0.0, 1.0), Point3D(0.0, 0.0, 1.0), 1.0, Vector3D(0.0, 1.0, 0.0)),
+    m_bottom(Vector3D(0.0, 0.0, -1.0), Point3D(0.0, 0.0, 0.0), 1.0, Vector3D(0.0, -1.0, 0.0))
 {
 }
 

@@ -67,7 +67,7 @@ class TextureMap : public PhongMaterial {
   Colour getDiffuse(const Primitive* primitive, const Point3D& p) const;
 
  private:
-  void getMapCoords(const Primitive* primitve, const Point3D& p, int coords[2]) const;  
+  bool getMapCoords(const Primitive* primitve, const Point3D& p, int coords[2]) const;  
 
   Image m_textureMap;
 };

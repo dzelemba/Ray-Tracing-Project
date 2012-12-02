@@ -30,6 +30,7 @@ bool Polygon::intersect(const Point3D& eye, const Vector3D& ray, const double of
 
   Point3D poi = eye + t * ray;
 
+
   if (!intersect(poi)) {
     return false;
   }

@@ -6,6 +6,7 @@
 #include <vector>
 
 struct Plane {
+  Plane() {}
   Plane(const Vector3D& normal, const Point3D& p, const Vector3D& up = Vector3D(0.0, 1.0, 0.0))
     : m_normal(normal), m_p(p), m_up(up), m_right(m_up.cross(m_normal))
   {
@@ -33,6 +34,7 @@ struct Plane {
 
 class Polygon {
  public:
+  Polygon() {}
   Polygon(std::vector<Point3D>& pts, const Vector3D& normal, const Vector3D& up = Vector3D(0.0, 1.0, 0.0));
   virtual ~Polygon();
 
