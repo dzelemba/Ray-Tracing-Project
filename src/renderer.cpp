@@ -61,6 +61,9 @@ void Renderer::render(const std::string& filename, const int numThreads)
 
 void Renderer::renderRows(const int startRow, const int numRows)
 {
+  int threadNo = startRow / numRows + 1;
+  if (startRow % numRows != 0) threadNo++;
+
   for (int y = startRow; y < startRow + numRows; y++) {
     for (int x = 0; x < m_scene->width; x++) {
       Colour c = getPixelColour(x, y);
@@ -68,7 +71,11 @@ void Renderer::renderRows(const int startRow, const int numRows)
       m_img(x, y, 1) = c.G();
       m_img(x, y, 2) = c.B();
     }
+    if ((y - startRow) % (numRows / 4) == 0) {
+      std::cerr << "Thread " << threadNo << ": " << 25 * ((y - startRow) / (numRows / 4)) << "% ";
+    }
   }
+  std::cerr << std::endl;
 }
 /*
   *************** BasicRenderer **************
