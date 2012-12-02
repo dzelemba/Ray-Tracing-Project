@@ -6,6 +6,8 @@
 #include <iosfwd>
 #include "shapes.hpp"
 
+class Mesh;
+
 class Primitive {
  public:
   virtual ~Primitive();
@@ -16,6 +18,8 @@ class Primitive {
   virtual bool containsPoint(const Point3D& p) const = 0;
   virtual Point2D textureMapCoords(const Point3D& p) const = 0;
   virtual Vector3D getNormal(const Point3D& p) const = 0;
+
+  virtual Mesh* getBoundingBox() const = 0;
 
  protected:
   bool checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
@@ -39,6 +43,8 @@ public:
   Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
+  Mesh* getBoundingBox() const;
+
 private:
   Point3D m_pos;
   double m_radius;
@@ -47,6 +53,7 @@ private:
 // A polygonal mesh.
 class Mesh : public Primitive {
 public:
+  Mesh();
   Mesh(const std::vector<Point3D>& verts,
        const std::vector< std::vector<int> >& faces,
        const std::vector<Vector3D>& upVectors = std::vector<Vector3D>() );
@@ -60,8 +67,14 @@ public:
   Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
+  Mesh* getBoundingBox() const;
+  void transform(const Matrix4x4& m);
+  void getExtremePoints(double points[6]) const;
+
 private:
   const Polygon& determinePolygon(const Point3D& p) const;
+
+  std::vector<Point3D> m_verts;
 
   // TODO: Provide option to pass pointers to Polygons to save space.
   std::vector<Polygon> m_polygons;
@@ -82,6 +95,8 @@ public:
   Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
+  Mesh* getBoundingBox() const;
+
 private:
   Mesh m_box;
 };
@@ -98,6 +113,8 @@ public:
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
+
+  Mesh* getBoundingBox() const;
 
 private:
   NonhierSphere m_unitSphere;
@@ -119,6 +136,8 @@ class Cube : public Primitive {
   Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
 
+  Mesh* getBoundingBox() const;
+
  private:
   NonhierBox m_unitCube;
 };
@@ -137,6 +156,8 @@ class Cone : public Primitive {
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
+
+  Mesh* getBoundingBox() const;
 
  protected:
   bool checkPoint(const Point3D& poi) const;
@@ -161,6 +182,8 @@ class Cylinder : public Primitive {
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
+
+  Mesh* getBoundingBox() const;
 
  protected:
   bool checkPoint(const Point3D& poi) const;

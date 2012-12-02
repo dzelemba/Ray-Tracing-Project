@@ -150,6 +150,33 @@ Point2D NonhierSphere::textureMapCoords(const Point3D& p) const
   return Point2D(longitude, lat);  
 }
 
+Mesh* NonhierSphere::getBoundingBox() const
+{
+  Point3D pos(m_pos[0] - m_radius, m_pos[1] - m_radius, m_pos[2] - m_radius);
+  double size = 2 * m_radius;
+
+  std::vector<Point3D> vertices;
+  vertices.push_back(Point3D(pos[0], pos[1], pos[2]));
+  vertices.push_back(Point3D(pos[0] + size, pos[1], pos[2]));
+  vertices.push_back(Point3D(pos[0] + size, pos[1] + size, pos[2]));
+  vertices.push_back(Point3D(pos[0], pos[1] + size, pos[2]));
+  vertices.push_back(Point3D(pos[0], pos[1], pos[2] + size));
+  vertices.push_back(Point3D(pos[0] + size, pos[1], pos[2] + size));
+  vertices.push_back(Point3D(pos[0] + size, pos[1] + size, pos[2] + size));
+  vertices.push_back(Point3D(pos[0], pos[1] + size, pos[2] + size));
+
+  std::vector<std::vector<int> > f;
+  int faces[6][4] = { {3, 2, 1, 0}, // Front
+                      {0, 1, 5, 4}, // Bottom
+                      {2, 6, 5, 1}, // Right
+                      {7, 3, 0, 4}, // Left
+                      {7, 6, 2, 3}, // Top
+                      {4, 5, 6, 7}}; // Back
+  for (int i = 0; i < 6; i++) f.push_back(std::vector<int> (faces[i], faces[i] + 4));
+
+  return new Mesh(vertices, f);
+}
+
 /*
    Mesh in mesh.cpp 
 */
@@ -215,6 +242,14 @@ Point2D NonhierBox::textureMapCoords(const Point3D& p) const
 {
   return m_box.textureMapCoords(p);
 }
+
+Mesh* NonhierBox::getBoundingBox() const
+{
+  // Dummy Implementation
+  std::cerr << "getBoudingBox() called on object it shouldn't have been called on" << std::endl;
+  return NULL;
+}
+
 /* 
   ********** Sphere **********
 */
@@ -242,6 +277,11 @@ Vector3D Sphere::getNormal(const Point3D& p) const
 Point2D Sphere::textureMapCoords(const Point3D& p) const
 {
   return m_unitSphere.textureMapCoords(p);
+}
+
+Mesh* Sphere::getBoundingBox() const
+{
+  return m_unitSphere.getBoundingBox();
 }
 
 /* 
@@ -273,6 +313,12 @@ Point2D Cube::textureMapCoords(const Point3D& p) const
   return m_unitCube.textureMapCoords(p);
 }
 
+Mesh* Cube::getBoundingBox() const
+{
+  // Dummy Implementation
+  std::cerr << "getBoudingBox() called on object it shouldn't have been called on" << std::endl;
+  return NULL;
+}
 
 /* 
   ********** Cone **********
@@ -351,6 +397,13 @@ int Cone::determineRegion(const Point3D& p) const
   } else {
     return 0;
   }
+}
+
+Mesh* Cone::getBoundingBox() const
+{
+  // Dummy Implementation
+  std::cerr << "getBoudingBox() called on object it shouldn't have been called on" << std::endl;
+  return NULL;
 }
 
 /* 
@@ -446,3 +499,33 @@ int Cylinder::determineRegion(const Point3D& p) const
     return 0;
   }
 }
+
+Mesh* Cylinder::getBoundingBox() const
+{
+  Point3D pos(-1.0, -1.0, 0.0);
+  double xySize = 2.0;
+  double zSize = 1.0;
+
+  std::vector<Point3D> vertices;
+  vertices.push_back(Point3D(pos[0], pos[1], pos[2]));
+  vertices.push_back(Point3D(pos[0] + xySize, pos[1], pos[2]));
+  vertices.push_back(Point3D(pos[0] + xySize, pos[1] + xySize, pos[2]));
+  vertices.push_back(Point3D(pos[0], pos[1] + xySize, pos[2]));
+  vertices.push_back(Point3D(pos[0], pos[1], pos[2] + zSize));
+  vertices.push_back(Point3D(pos[0] + xySize, pos[1], pos[2] + zSize));
+  vertices.push_back(Point3D(pos[0] + xySize, pos[1] + xySize, pos[2] + zSize));
+  vertices.push_back(Point3D(pos[0], pos[1] + xySize, pos[2] + zSize));
+
+  std::vector<std::vector<int> > f;
+  int faces[6][4] = { {3, 2, 1, 0}, // Front
+                      {0, 1, 5, 4}, // Bottom
+                      {2, 6, 5, 1}, // Right
+                      {7, 3, 0, 4}, // Left
+                      {7, 6, 2, 3}, // Top
+                      {4, 5, 6, 7}}; // Back
+  for (int i = 0; i < 6; i++) f.push_back(std::vector<int> (faces[i], faces[i] + 4));
+
+  return new Mesh(vertices, f);
+}
+
+

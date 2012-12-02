@@ -108,6 +108,18 @@ Point2D Polygon::textureMapCoords(const Point3D& p) const
   }
   return Point2D(-1, -1);
 }
+
+void Polygon::transform(const Matrix4x4& m)
+{
+  for (std::vector<Point3D>::iterator it = m_verts.begin(); it != m_verts.end(); it++) {
+    *it = m * *it;
+  }
+
+  m_plane.m_normal = m.invert().transpose() * m_plane.m_normal;
+
+  // We're screwing up the "up-vector" here, but who cares.
+}
+
 /* 
   ********** Circle **********
 */

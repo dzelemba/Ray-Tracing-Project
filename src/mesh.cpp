@@ -2,10 +2,17 @@
 #include <iostream>
 #include <cfloat>
 
+Mesh::Mesh()
+  : m_verts(),
+    m_polygons(), 
+    m_boundingSphere(Point3D(0.0, 0.0, 0.0), 0.0)
+{}
+
 Mesh::Mesh(const std::vector<Point3D>& verts,
            const std::vector< std::vector<int> >& faces,
            const std::vector<Vector3D>& upVectors)
-  : m_polygons(),
+  : m_verts(verts),
+    m_polygons(),
     m_boundingSphere(Point3D(0.0, 0.0, 0.0), 0.0)
 {
   for (std::vector<Face>::const_iterator it = faces.begin(); it != faces.end(); it++) {
@@ -121,12 +128,59 @@ const Polygon& Mesh::determinePolygon(const Point3D& p) const
   return m_polygons.front();
 }
 
+Mesh* Mesh::getBoundingBox() const
+{
+  // Dummy Implementation
+  std::cerr << "getBoudingBox() called on object it shouldn't have been called on" << std::endl;
+  return NULL;
+}
+
+void Mesh::transform(const Matrix4x4& m)
+{
+  for (std::vector<Polygon>::iterator it = m_polygons.begin(); it != m_polygons.end(); it++) {
+    it->transform(m);
+  }
+  for (std::vector<Point3D>::iterator it = m_verts.begin(); it != m_verts.end(); it++) {
+     *it = m * *it;
+  }
+}
+
+void Mesh::getExtremePoints(double points[6]) const
+{
+  double minX, minY, minZ;
+  double maxX, maxY, maxZ;
+  minX = minY = minZ = DBL_MAX;
+  maxX = maxY = maxZ = -DBL_MAX;
+
+  for (std::vector<Point3D>::const_iterator it = m_verts.begin(); it != m_verts.end(); it++) {
+    Point3D p = *it;
+    if (p[0] < minX) {
+      minX = p[0];
+    }
+    if (p[0] > maxX) maxX = p[0];
+    if (p[1] < minY) minY = p[1];
+    if (p[1] > maxY) maxY = p[1];
+    if (p[2] < minZ) minZ = p[2];
+    if (p[2] > maxZ) maxZ = p[2];
+  }
+
+  points[0] = minX;
+  points[1] = maxX;
+  points[2] = minY;
+  points[3] = maxY;
+  points[4] = minZ;
+  points[5] = maxZ;
+}
+
 std::ostream& operator<<(std::ostream& out, const Mesh& mesh)
 {
   (void)mesh;
 
   std::cerr << "mesh({";
 
+  for (std::vector<Point3D>::const_iterator it = mesh.m_verts.begin(); it != mesh.m_verts.end(); it++) {
+    std::cerr << *it << ", ";
+  }
   std::cerr << "});" << std::endl;
   return out;
 }

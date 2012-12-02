@@ -1,5 +1,6 @@
 #include "tree.hpp"
 #include "image_primitive.hpp"
+#include <cfloat>
 
 static TextureMap wood("wood_texture.png", Colour(0.0, 0.0, 0.0), 5, 0.0, 0.0);
 
@@ -12,12 +13,12 @@ static double initialThickness = 1.0;
 static int initialBranches = 5;
 
 static int leavesPerBranch = 3;
-static int leafStartLevel = 2;
+static int leafStartLevel = 3;
 
 static double thicknessReduction = 2.0;
 static double lengthReduction = 1.25;
 
-static int recursiveDepth = 3;
+static int recursiveDepth = 4;
 
 // Helper functions for random number generators
 
@@ -80,7 +81,7 @@ Tree::~Tree()
 */
 
 Branch::Branch(const std::string& name, int level, const double thickness, const double length)
-  : SceneNode(name)
+  : SceneNode(name), m_boundingBox()
 {
   createLeaves(level, thickness, length);
 
@@ -96,11 +97,13 @@ Branch::Branch(const std::string& name, int level, const double thickness, const
 
   createGeometryNode(length, thickness, upDist, upAngle, zAngle);
   spawnSubBranches(level, length, thickness);
+
+  createBoundingBox();
 }
 
 Branch::Branch(const std::string& name, int level, const double thickness, const double length, 
                double upDist, double upAngle, double zAngle)
-  : SceneNode(name)
+  : SceneNode(name), m_boundingBox()
 {
   double branchLength = length;
   if (level == 1) {
@@ -111,6 +114,8 @@ Branch::Branch(const std::string& name, int level, const double thickness, const
 
   createGeometryNode(branchLength, thickness, upDist, upAngle, zAngle);
   spawnSubBranches(level, branchLength, thickness);
+
+  createBoundingBox();
 }
 
 Branch::~Branch()
@@ -174,6 +179,71 @@ void Branch::createLeaves(const int level, const double thickness, const double 
   }
 }
 
+void Branch::createBoundingBox()
+{
+  double minX, minY, minZ;
+  double maxX, maxY, maxZ;
+  minX = minY = minZ = DBL_MAX;
+  maxX = maxY = maxZ = -DBL_MAX;
+
+  double extremePoints[6]; 
+  for (std::list<SceneNode*>::iterator it = m_children.begin(); it != m_children.end(); it++) {
+    // Combine each one.
+    Mesh* m = (*it)->getBoundingBox();
+    m->getExtremePoints(extremePoints);
+    delete m;
+
+    if (extremePoints[0] < minX) minX = extremePoints[0];
+    if (extremePoints[1] > maxX) maxX = extremePoints[1];
+    if (extremePoints[2] < minY) minY = extremePoints[2];
+    if (extremePoints[3] > maxY) maxY = extremePoints[3];
+    if (extremePoints[4] < minZ) minZ = extremePoints[4];
+    if (extremePoints[5] > maxZ) maxZ = extremePoints[5];
+  }
+
+  std::vector<Point3D> vertices;
+  vertices.push_back(Point3D(minX, minY, minZ));
+  vertices.push_back(Point3D(maxX, minY, minZ));
+  vertices.push_back(Point3D(maxX, maxY, minZ));
+  vertices.push_back(Point3D(minX, maxY, minZ));
+  vertices.push_back(Point3D(minX, minY, maxZ));
+  vertices.push_back(Point3D(maxX, minY, maxZ));
+  vertices.push_back(Point3D(maxX, maxY, maxZ));
+  vertices.push_back(Point3D(minX, maxY, maxZ));
+
+  std::vector<std::vector<int> > f;
+  int faces[6][4] = { {3, 2, 1, 0}, // Front
+                      {0, 1, 5, 4}, // Bottom
+                      {2, 6, 5, 1}, // Right
+                      {7, 3, 0, 4}, // Left
+                      {7, 6, 2, 3}, // Top
+                      {4, 5, 6, 7}}; // Back
+  for (int i = 0; i < 6; i++) f.push_back(std::vector<int> (faces[i], faces[i] + 4));
+
+  m_boundingBox = Mesh(vertices, f);
+}
+
+Mesh* Branch::getBoundingBox()
+{
+  Mesh* m = new Mesh(m_boundingBox);
+  m->transform(m_trans);
+
+  return m;
+}
+
+void Branch::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                       SegmentList& tVals) const
+{
+  const Point3D transEye = m_invtrans * eye;
+  const Vector3D transRay = m_invtrans * ray;
+
+  // Check bounding box;
+  std::list<IntersectionPoint> dummyTVals;
+  if (m_boundingBox.intersect(transEye, transRay, offset, dummyTVals)) {
+    return SceneNode::intersect(eye, ray, offset, tVals);
+  }
+}
+
 /*
   ********** Leaf **********
 */
@@ -201,4 +271,9 @@ Leaf::Leaf(const std::string& name, const double branchThickness, const double b
 
 Leaf::~Leaf()
 {
+}
+  
+Mesh* Leaf::getBoundingBox()
+{
+  return m_children.front()->getBoundingBox();
 }

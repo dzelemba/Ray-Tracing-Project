@@ -88,6 +88,12 @@ void SceneNode::combineSegments(SegmentList& s1, SegmentList& s2) const
   s2.insert(s1);
 }
 
+Mesh* SceneNode::getBoundingBox()
+{
+  std::cerr << "Error! BoundingBox requested from SceneNode" << std::endl;
+  return NULL;
+}
+
 /*
   ************ IntersectionNode ****************
 */
@@ -142,7 +148,6 @@ void GeometryNode::intersect(const Point3D& eye, const Vector3D& ray, const doub
   const Point3D transEye = m_invtrans * eye;
   const Vector3D transRay = m_invtrans * ray;
 
-
   std::list<IntersectionPoint> tValues;
   if (m_primitive->filteredIntersect(transEye, transRay, offset, tValues)) { 
     std::list<IntersectionPoint>::iterator it = tValues.begin();
@@ -159,6 +164,18 @@ void GeometryNode::intersect(const Point3D& eye, const Vector3D& ray, const doub
 
     tVals.transformNormals(m_invtrans.transpose());
   }
+}
+
+Mesh* GeometryNode::getBoundingBox()
+{
+  Mesh* m = m_primitive->getBoundingBox();
+
+ // std::cerr << "Before: " << *m << std::endl;
+  m->transform(m_trans);
+  //std::cerr << "After: " << *m << std::endl;
+  //std::cerr << "trans: " << m_trans << std::endl;
+
+  return m;
 }
 
 Colour GeometryNode::getColour(const Point3D& eye, const IntersectionPoint& poi, 

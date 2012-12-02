@@ -23,17 +23,28 @@ class Branch : public SceneNode {
                double upDist, double upAngle, double zAngle);
   ~Branch();
 
+  Mesh* getBoundingBox();
+  
+  void intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+                 SegmentList& tVals) const;
+
  private:
   void createGeometryNode(const double length, const double thickness, const double upDist,
                           const double upAngle, const double zAngle);
   void spawnSubBranches(const int level, const double length, const double thickness);
   void createLeaves(const int level, const double thickness, const double branchLength);
+
+  void createBoundingBox();
+  
+  Mesh m_boundingBox;
 };
 
 class Leaf : public SceneNode {
  public:
   Leaf(const std::string& name, const double branchThickness, const double branchLength);
   ~Leaf();
+
+  Mesh* getBoundingBox();
 };
 
 #endif

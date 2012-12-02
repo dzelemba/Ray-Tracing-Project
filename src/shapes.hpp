@@ -47,6 +47,8 @@ class Polygon {
 
   void set_upVector(const Vector3D& up) { m_plane.set_upVector(up); }
 
+  void transform(const Matrix4x4& m);
+
  private:
   bool checkPointForLine(const Point3D& p, const Point3D& p1, const Point3D& p2,
                          const Vector3D& normal) const;

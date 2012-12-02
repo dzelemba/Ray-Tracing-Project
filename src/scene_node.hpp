@@ -60,6 +60,8 @@ public:
   virtual void intersect(const Point3D& eye, const Vector3D& ray, const double offest,
                                          SegmentList& tVals) const;
 
+  virtual Mesh* getBoundingBox();
+
   std::string m_name;
 
   static void setScene(const Scene* scene) { m_scene = scene; }
@@ -120,6 +122,8 @@ public:
   // Overwritten to do actual intersection
   void intersect(const Point3D& eye, const Vector3D& ray, const double offset,
                                  SegmentList& tVals) const;
+
+  Mesh* getBoundingBox();
 
 protected:
   PhongMaterial* m_material;

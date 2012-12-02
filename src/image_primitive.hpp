@@ -15,6 +15,7 @@ class ImagePrimitive : public Primitive {
   Point2D textureMapCoords(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
 
+  Mesh* getBoundingBox() const;
  private:
   Polygon m_face;
 };
