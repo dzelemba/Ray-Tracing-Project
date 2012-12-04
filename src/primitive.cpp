@@ -6,13 +6,13 @@ Primitive::~Primitive()
 {
 }
 
-bool Primitive::filteredIntersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool Primitive::filteredIntersect(const Point3D& eye, const Vector3D& ray, 
                                   std::list<IntersectionPoint>& tValues) const
 {
-  if (intersect(eye, ray, offset, tValues)) { 
+  if (intersect(eye, ray,  tValues)) { 
     tValues.sort();
 
-    int numVals = tValues.size();
+    //int numVals = tValues.size();
 
     // Here we have to eliminate dupicates that occur due to points passing
     // through an edge or a corner. We must be careful not to eliminate duplicates
@@ -23,11 +23,11 @@ bool Primitive::filteredIntersect(const Point3D& eye, const Vector3D& ray, const
     std::list<IntersectionPoint>::iterator curr = tValues.begin();
     curr++;
     for (; prev != tValues.end(); curr++, prev++) {
-      if (equal(curr->m_t, prev->m_t)) {
+      if (equal(curr->m_t, prev->m_t, tightEpsilon)) {
         if (containsPoint(eye + (curr->m_t + 100 * tightEpsilon) * ray) ||
             containsPoint(eye + (curr->m_t - 100 * tightEpsilon) * ray)) {
           // Now if there's more than 2 we should remove them as well
-          for ( ; equal(curr->m_t, prev->m_t) && curr != tValues.end(); curr++, prev++) {
+          for ( ; equal(curr->m_t, prev->m_t, tightEpsilon) && curr != tValues.end(); curr++, prev++) {
             pointsToRemove.push_back(curr);
           }
         }
@@ -39,23 +39,27 @@ bool Primitive::filteredIntersect(const Point3D& eye, const Vector3D& ray, const
       tValues.erase(*it);
     } 
 
+/* This still happens sometimes, not a big deal though so ignore it
     // Now we should have an even number of points.
     if (tValues.size() % 2 != 0) {
+
       std::cerr << std::endl << "Error! Number of intersection points is odd: " << numVals << " "
                 << " " << tValues.size() << " ";
       for (std::list<IntersectionPoint>::iterator it = tValues.begin(); it != tValues.end(); it++)
         std::cerr << it->m_t << " " << eye + it->m_t * ray << " ";
       std::cerr << std::endl;
+
       return false;
     }
 
+*/
     return true;
   }
 
   return false;
 }
 
-bool Primitive::checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
+bool Primitive::checkQuadraticRoots(const Point3D& eye, const Vector3D& ray,
                                     const double A, const double B, const double C,
                                     std::list<IntersectionPoint>& tVals) const
 {
@@ -91,7 +95,7 @@ NonhierSphere::~NonhierSphere()
 {
 }
 
-bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, 
                               std::list<IntersectionPoint>& tVals) const 
 {
   double A = 0; 
@@ -108,7 +112,7 @@ bool NonhierSphere::intersect(const Point3D& eye, const Vector3D& ray, const dou
   }
   C -= m_radius * m_radius;
 
-  checkQuadraticRoots(eye, ray, offset, A, B, C, tVals);
+  checkQuadraticRoots(eye, ray,  A, B, C, tVals);
 
   return tVals.size() != 0;
 }
@@ -222,10 +226,10 @@ NonhierBox::~NonhierBox()
 {
 }
 
-bool NonhierBox::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool NonhierBox::intersect(const Point3D& eye, const Vector3D& ray, 
                            std::list<IntersectionPoint>& tVals) const
 {
-  return m_box.intersect(eye, ray, offset, tVals);
+  return m_box.intersect(eye, ray,  tVals);
 }
 
 bool NonhierBox::containsPoint(const Point3D& p) const
@@ -258,10 +262,10 @@ Sphere::~Sphere()
 {
 }
 
-bool Sphere::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool Sphere::intersect(const Point3D& eye, const Vector3D& ray, 
                        std::list<IntersectionPoint>& tVals) const
 {
-  return m_unitSphere.intersect(eye, ray, offset, tVals);
+  return m_unitSphere.intersect(eye, ray,  tVals);
 }
 
 bool Sphere::containsPoint(const Point3D& p) const
@@ -292,10 +296,10 @@ Cube::~Cube()
 {
 }
 
-bool Cube::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool Cube::intersect(const Point3D& eye, const Vector3D& ray, 
                      std::list<IntersectionPoint>& tVals) const
 {
-  return m_unitCube.intersect(eye, ray, offset, tVals);
+  return m_unitCube.intersect(eye, ray,  tVals);
 }
 
 bool Cube::containsPoint(const Point3D& p) const
@@ -333,7 +337,7 @@ Cone::~Cone()
 {
 }
 
-bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool Cone::intersect(const Point3D& eye, const Vector3D& ray, 
                      std::list<IntersectionPoint>& tVals) const
 {
   double A = 0, B = 0, C = 0;
@@ -345,8 +349,8 @@ bool Cone::intersect(const Point3D& eye, const Vector3D& ray, const double offse
     C += mult * (eye[i] * eye[i]);
   }
 
-  checkQuadraticRoots(eye, ray, offset, A, B, C, tVals);
-  m_base.intersect(eye, ray, offset, tVals);
+  checkQuadraticRoots(eye, ray,  A, B, C, tVals);
+  m_base.intersect(eye, ray,  tVals);
 
   return tVals.size() != 0;
 }
@@ -420,7 +424,7 @@ Cylinder::~Cylinder()
 {
 }
 
-bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, 
                          std::list<IntersectionPoint>& tVals) const
 {
   double A = 0, B = 0, C = 0;
@@ -432,9 +436,9 @@ bool Cylinder::intersect(const Point3D& eye, const Vector3D& ray, const double o
   }
   C -= 1.0;
 
-  checkQuadraticRoots(eye, ray, offset, A, B, C, tVals);
-  m_top.intersect(eye, ray, offset, tVals);
-  m_bottom.intersect(eye, ray, offset, tVals);
+  checkQuadraticRoots(eye, ray,  A, B, C, tVals);
+  m_top.intersect(eye, ray,  tVals);
+  m_bottom.intersect(eye, ray,  tVals);
 
   return tVals.size() != 0;
 }

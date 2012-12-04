@@ -8,17 +8,17 @@ static int totalBranches = 0;
 static int totalLeaves = 0;
 
 // Parameters determining tree look.
-static double initialLength = 7.0;
-static double initialThickness = 1.0;
-static int initialBranches = 5;
+static double initialLength;
+static double initialThickness;
+static int initialBranches;
 
-static int leavesPerBranch = 3;
-static int leafStartLevel = 3;
+static int leavesPerBranch;
+static int leafStartLevel;
 
-static double thicknessReduction = 2.0;
-static double lengthReduction = 1.25;
+static double thicknessReduction;
+static double lengthReduction;
 
-static int recursiveDepth = 4;
+static int recursiveDepth;
 
 // Helper functions for random number generators
 
@@ -36,13 +36,6 @@ static double nextThickness(const double thickness, const int level)
   return thickness / thicknessReduction;
 }
 
-static double prevThickness(const double thickness, const int level)
-{
-  (void)level;
-
-  return thickness * thicknessReduction;
-}
-
 static double nextLength(const double length, const int level)
 {
   return length / pow(lengthReduction, 2 * (level + 1) - 1);
@@ -58,18 +51,37 @@ static double prevLength(const double length, const int level)
 */
 
 
-Tree::Tree(const std::string& name)
+Tree::Tree(const std::string& name, double initialLength, double initialThickness,
+           int initialBranches, int leavesPerBranch, int leafStartLevel, 
+           double thicknessReduction, double lengthReduction, int recursiveDepth, int seed)
   : SceneNode(name)
 {
-  srand( time(NULL) );
+  totalBranches = 0;
+  totalLeaves = 0;
+
+  ::initialLength = initialLength;
+  ::initialThickness = initialThickness;
+  ::initialBranches = initialBranches;
+
+  ::leavesPerBranch = leavesPerBranch;
+  ::leafStartLevel = leafStartLevel;
+
+  ::thicknessReduction = thicknessReduction;
+  ::lengthReduction = lengthReduction;
+
+  ::recursiveDepth = recursiveDepth;
+
+  wood.bump("woodbump.png");
+
+  srand( seed );
 
   Branch* trunk = new Branch("Trunk", 0, initialThickness, initialLength);
   trunk->rotate('x', -90);
 
   add_child(trunk);
 
-  std::cerr << "Total Branches: " <<  totalBranches 
-            << " Total Leaves: " << totalLeaves << std::endl;
+  //std::cerr << "Total Branches: " <<  totalBranches 
+    //        << " Total Leaves: " << totalLeaves << std::endl;
 }
 
 Tree::~Tree()
@@ -151,11 +163,11 @@ void Branch::spawnSubBranches(const int level, const double length, const double
   }
 
   // Tree branches seem to split in two at the ends so simulate that.
+
   add_child(new Branch("SplitBranch", level + 1, nextThickness(thickness, level), 
                        nextLength(length, level), length, -30.0, 0.0));
   add_child(new Branch("SplitBranch", level + 1, nextThickness(thickness, level), 
                        nextLength(length, level), length, 30.0, 0.0));
-
   // Two branches coming out of the top looks a little weird so add a sphere.
   Sphere* p_sphere = new Sphere();
   GeometryNode* sphere = new GeometryNode("BranchTop", p_sphere);
@@ -231,16 +243,15 @@ Mesh* Branch::getBoundingBox()
   return m;
 }
 
-void Branch::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                       SegmentList& tVals) const
+void Branch::intersect(const Point3D& eye, const Vector3D& ray, SegmentList& tVals) const
 {
   const Point3D transEye = m_invtrans * eye;
   const Vector3D transRay = m_invtrans * ray;
 
   // Check bounding box;
   std::list<IntersectionPoint> dummyTVals;
-  if (m_boundingBox.intersect(transEye, transRay, offset, dummyTVals)) {
-    return SceneNode::intersect(eye, ray, offset, tVals);
+  if (m_boundingBox.intersect(transEye, transRay, dummyTVals)) {
+    return SceneNode::intersect(eye, ray, tVals);
   }
 }
 

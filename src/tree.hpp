@@ -5,14 +5,16 @@
 #include "primitive.hpp"
 
 /*
-  Note: All this logic should really be in a lua file, but this is a lot easier.
-  Also, we will allocate a lot of memory on the heap, but since none of it can
+  Note: We will allocate a lot of memory on the heap, but since none of it can
   be freed until the ray tracer completes, we won't free it.
 */
 
 class Tree : public SceneNode {
  public:
-  Tree(const std::string& name);
+  Tree(const std::string& name, double initialLength = 7.0, double initialThickness = 1.0,
+       int initialBranches = 6, int leavesPerBranch = 3, int leafStartLevel = 2, 
+       double thicknessReduction = 2.0, double lengthReduction = 1.25, int recursiveDepth = 4,
+       int seed = time(NULL));
   ~Tree();
 };
 
@@ -25,8 +27,7 @@ class Branch : public SceneNode {
 
   Mesh* getBoundingBox();
   
-  void intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                 SegmentList& tVals) const;
+  void intersect(const Point3D& eye, const Vector3D& ray, SegmentList& tVals) const;
 
  private:
   void createGeometryNode(const double length, const double thickness, const double upDist,

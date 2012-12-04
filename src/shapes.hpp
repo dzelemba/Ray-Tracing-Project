@@ -38,12 +38,14 @@ class Polygon {
   Polygon(std::vector<Point3D>& pts, const Vector3D& normal, const Vector3D& up = Vector3D(0.0, 1.0, 0.0));
   virtual ~Polygon();
 
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   bool intersect(const Point3D& p) const;
   bool checkConstraint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
+
   Point2D textureMapCoords(const Point3D& p) const;
+  Point2D textureMapCoords(const Point3D& p, double& width, double& height) const;
 
   void set_upVector(const Vector3D& up) { m_plane.set_upVector(up); }
 
@@ -63,7 +65,7 @@ class Circle {
   Circle(const Vector3D& normal, const Point3D& center, double radius, const Vector3D& up);
   virtual ~Circle();
 
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   Vector3D getNormal(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;

@@ -57,8 +57,7 @@ public:
   
   // Actual function used for the recursion.
   // Keeps track of the minimum t found so far to determine which object to return.
-  virtual void intersect(const Point3D& eye, const Vector3D& ray, const double offest,
-                                         SegmentList& tVals) const;
+  virtual void intersect(const Point3D& eye, const Vector3D& ray, SegmentList& tVals) const;
 
   virtual Mesh* getBoundingBox();
 
@@ -120,8 +119,7 @@ public:
                    const double refractiveIndex = 1.0, int recursiveDepth = 0) const;
 
   // Overwritten to do actual intersection
-  void intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                                 SegmentList& tVals) const;
+  void intersect(const Point3D& eye, const Vector3D& ray, SegmentList& tVals) const;
 
   Mesh* getBoundingBox();
 

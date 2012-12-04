@@ -55,7 +55,8 @@ Scene::Scene(SceneNode* root,
 
 bool Scene::intersect(const double dx, const double dy, Colour& c) const
 {
-  return intersect(eye, getRay(dx, dy), c);
+  Vector3D ray = getRay(dx, dy);
+  return intersect(eye, ray, c);
 }
 
 bool Scene::intersect(const Point3D& start, const Vector3D& ray, Colour &c) const
@@ -65,8 +66,8 @@ bool Scene::intersect(const Point3D& start, const Vector3D& ray, Colour &c) cons
 
 Point3D Scene::getJitteredEye() const
 {
-  double xOffset = (((double)rand() / (double)RAND_MAX) - 0.5);
-  double yOffset = (((double)rand() / (double)RAND_MAX) - 0.5);
+  double xOffset = ((((double)rand() / (double)RAND_MAX) - 0.5)) / 4.0;
+  double yOffset = ((((double)rand() / (double)RAND_MAX) - 0.5)) / 4.0;
 
   return eye + xOffset * left + yOffset * up;
 }
@@ -88,7 +89,7 @@ Colour Scene::getBackground(const Point3D& eye, const Vector3D& ray) const
   Point3D backgroundCenter = eye + backgroundDist * view;
 
   Point3D backgroundPt;
-  if (background.intersect(eye, ray, 0.0, backgroundPt)) {
+  if (background.intersect(eye, ray, backgroundPt)) {
     Vector3D p = backgroundPt - backgroundCenter;
 
     // Now we have a simple linear system to solve

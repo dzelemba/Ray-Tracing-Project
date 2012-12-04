@@ -1,28 +1,29 @@
 #include "image_primitive.hpp"
 #include <vector>
 
-ImagePrimitive::ImagePrimitive()
+ImagePrimitive::ImagePrimitive(const int copies)
+  : m_face(), m_copies(copies)
 {
   std::vector<Point3D> points;
   points.push_back(Point3D(0.0, 0.0, 0.0));
-  points.push_back(Point3D(0.0, 1.0, 0.0));
-  points.push_back(Point3D(1.0, 1.0, 0.0));
-  points.push_back(Point3D(1.0, 0.0, 0.0));
+  points.push_back(Point3D(0.0, copies, 0.0));
+  points.push_back(Point3D(copies, copies, 0.0));
+  points.push_back(Point3D(copies, 0.0, 0.0));
 
   m_face = Polygon(points, Vector3D(0.0, 0.0, -1.0));
 }
 
-bool ImagePrimitive::filteredIntersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool ImagePrimitive::filteredIntersect(const Point3D& eye, const Vector3D& ray, 
                                  std::list<IntersectionPoint>& tVals) const
 {
   // No need to filter here
-  return intersect(eye, ray, offset, tVals);
+  return intersect(eye, ray,  tVals);
 }
 
-bool ImagePrimitive::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool ImagePrimitive::intersect(const Point3D& eye, const Vector3D& ray, 
                          std::list<IntersectionPoint>& tVals) const
 {
-  if (m_face.intersect(eye, ray, offset, tVals)) {
+  if (m_face.intersect(eye, ray,  tVals)) {
     // We want the normal to always be pointing towards the eye
     if (m_face.checkConstraint(eye)) {
       IntersectionPoint& p = tVals.front(); // There should be only one.
@@ -45,7 +46,11 @@ bool ImagePrimitive::containsPoint(const Point3D& p) const
 
 Point2D ImagePrimitive::textureMapCoords(const Point3D& p) const
 {
-  return m_face.textureMapCoords(p);
+  double width, height;
+  Point2D coords = m_face.textureMapCoords(p, width, height);
+
+  return Point2D(coords[0] - floor(coords[0]),
+                 coords[1] - floor(coords[1]));
 }
 
 Vector3D ImagePrimitive::getNormal(const Point3D& p) const

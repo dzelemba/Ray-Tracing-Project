@@ -1,0 +1,59 @@
+Name: Dusan Zelembaba
+Student Number: 20349855
+User-id: dzelemba
+Assignment: 5
+
+The final executable was compiled on this machine: gl13 
+
+How to invoke my program: 
+
+./rt [-s] [-c numCores] filename.lua
+  This will run the raytracer for the scene, filename.lua, and output
+  filename.png 
+
+  -s -- Use Stochastic Sampling to improve image quality. Note that if a focal
+        point is specified in the lua script this does nothing.
+  -c numCores -- Use $numCores threads to render the scene.
+
+./test.sh filename
+
+  This will run the raytracer with filename.lua using the number of cores
+  on the machine as the number of threads. It will also output timing data.
+
+
+I have created the following data files, which are in the data directory:
+
+    extraPrimitives.lua
+    nonhier-poor.lua, nonhier.lua
+    nonhier-refraction.lua, nonhier-all.lua
+    csg.lua, ant.lua
+    bump.lua, logtest.lua
+    depthoffield.lua
+    threading.lua 
+    treetest.lua, leaftest.lua, leaf.lua
+    finalscene.lua
+
+Objectives:
+
+     0: Reflections were implemented as my A4 extra feature.
+
+     1: Refraction has been implemented.
+     
+     2: Stochastic sampling has been implemented for anti-aliasing and before and after images are provided to demonstrate this.
+
+     3: Texture mapping has been implemented.
+
+     4: Bump mapping has been implemented. 
+     
+     5: Cones and cylinders have been added as extra primitives. 
+    
+     6: Multi-threaded rendering has been implemented. Before and after timing results are shown to demonstrate this.
+     
+     7: Union, intersection and difference have been implemented for constructive solid geometry and a sample image showing combinations of these with different primitives has been provided. 
+
+     8: Depth of field effects have been implemented and an identical scene with 3 different focal points is provided to demonstrate this.
+     
+     9: L-system plants have been implemented. 
+     
+     10: A unique scene demonstrating the above objectives has been provided.
+     

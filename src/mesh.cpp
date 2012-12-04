@@ -59,28 +59,28 @@ Mesh::Mesh(const std::vector<Point3D>& verts,
   m_boundingSphere = NonhierSphere(center, radius);
 }
 
-bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offset, std::list<IntersectionPoint>& tVals) const
+bool Mesh::intersect(const Point3D& eye, const Vector3D& ray,  std::list<IntersectionPoint>& tVals) const
 {
   // Draw bouding sphere instead?
-  // return m_boundingSphere.intersect(eye, ray, offset, minT, normal);
+  // return m_boundingSphere.intersect(eye, ray,  minT, normal);
 
   // First intersect with our bounding sphere.
   std::list<IntersectionPoint> dummyTVals;
-  if (!m_boundingSphere.intersect(eye, ray, offset, dummyTVals)) {
+  if (!m_boundingSphere.intersect(eye, ray,  dummyTVals)) {
     return false;
   }
 
   for (std::vector<Polygon>::const_iterator it = m_polygons.begin(); it != m_polygons.end(); it++) {
-    it->intersect(eye, ray, offset, tVals);
+    it->intersect(eye, ray,  tVals);
   }
 
   return tVals.size() != 0;
 }
 
-bool Mesh::intersect(const Point3D& eye, const Vector3D& ray, const double offset, Point3D& poi) const
+bool Mesh::intersect(const Point3D& eye, const Vector3D& ray,  Point3D& poi) const
 {
   std::list<IntersectionPoint> tVals;
-  if (intersect(eye, ray, offset, tVals)) {
+  if (intersect(eye, ray,  tVals)) {
     double minT = DBL_MAX;
     for (std::list<IntersectionPoint>::iterator it = tVals.begin(); it != tVals.end(); it++) {
       if (it->m_t < minT) {

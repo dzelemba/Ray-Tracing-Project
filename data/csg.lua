@@ -20,7 +20,7 @@ c:set_material(mat3)
 
 union = gr.node('union')
 union:translate(0.0, 4.0, 0.0)
-union:add_child(s)
+--union:add_child(s)
 union:add_child(c)
 
 -- Intersection
@@ -54,9 +54,9 @@ left:add_child(diff2)
 
 middle = gr.node('middle')
 middle:add_child(union)
-middle:add_child(inter)
-middle:add_child(diff1)
-middle:add_child(diff2)
+--middle:add_child(inter)
+--middle:add_child(diff1)
+--middle:add_child(diff2)
 
 right = gr.node('right')
 right:translate(3.0, 0.0, 0.0)
@@ -68,9 +68,9 @@ right:add_child(diff2)
 
 root = gr.node('root')
 root:translate(0.0, 1.5, -3.0)
-root:add_child(left)
+--root:add_child(left)
 root:add_child(middle)
-root:add_child(right)
+--root:add_child(right)
 
 
 white_light = gr.light({-100.0, 150.0, 400.0}, {0.9, 0.9, 0.9}, {1, 0, 0})

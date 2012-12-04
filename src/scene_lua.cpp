@@ -222,17 +222,44 @@ int gr_difference_node_cmd(lua_State* L)
   return 1;
 }
 
-// Create a sphere node
+// Create a tree
 extern "C"
 int gr_tree_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
   
+  int numArgs = lua_gettop(L);
+
   gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
   data->node = 0;
   
   const char* name = luaL_checkstring(L, 1);
-  data->node = new Tree(name);
+
+  if (numArgs > 1) {
+    double initialLength = luaL_checknumber(L, 2);
+    double initialThickness = luaL_checknumber(L, 3);
+    int initialBranches = luaL_checknumber(L, 4);
+
+    int leavesPerBranch = luaL_checknumber(L, 5);
+    int leafStartLevel = luaL_checknumber(L, 6);
+
+    double thicknessReduction = luaL_checknumber(L, 7);
+    double lengthReduction = luaL_checknumber(L, 8);
+
+    int recursiveDepth = luaL_checknumber(L, 9);
+
+    if (numArgs > 9) {
+      int seed = luaL_checknumber(L, 10);
+      data->node = new Tree(name, initialLength, initialThickness, initialBranches, leavesPerBranch, 
+                            leafStartLevel, thicknessReduction, lengthReduction, recursiveDepth,
+                            seed);
+    } else {
+      data->node = new Tree(name, initialLength, initialThickness, initialBranches, leavesPerBranch, 
+                            leafStartLevel, thicknessReduction, lengthReduction, recursiveDepth);
+    }
+  } else {
+    data->node = new Tree(name);
+  }
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);
@@ -318,11 +345,19 @@ int gr_square_cmd(lua_State* L)
 {
   GRLUA_DEBUG_CALL;
   
+  int numArgs = lua_gettop(L);
+
   gr_node_ud* data = (gr_node_ud*)lua_newuserdata(L, sizeof(gr_node_ud));
   data->node = 0;
-  
+
   const char* name = luaL_checkstring(L, 1);
-  data->node = new GeometryNode(name, new ImagePrimitive());
+
+  int copies = 1;
+  if (numArgs > 1) {
+    copies = luaL_checknumber(L, 2);
+  }
+  
+  data->node = new GeometryNode(name, new ImagePrimitive(copies));
 
   luaL_getmetatable(L, "gr.node");
   lua_setmetatable(L, -2);

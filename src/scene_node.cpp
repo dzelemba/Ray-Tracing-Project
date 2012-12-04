@@ -51,7 +51,7 @@ bool SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double 
                                          IntersectionPoint& poi) const
 {
   SegmentList segments; 
-  intersect(eye, ray, offset, segments);
+  intersect(eye, ray, segments);
 
   if (segments.getMin(offset, poi)) {
     poi.calcPOI(eye, ray);
@@ -61,7 +61,7 @@ bool SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double 
   return false;
 }
 
-void SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+void SceneNode::intersect(const Point3D& eye, const Vector3D& ray,
                                           SegmentList& tVals) const
 {
   const Point3D transEye = m_invtrans * eye;
@@ -69,13 +69,14 @@ void SceneNode::intersect(const Point3D& eye, const Vector3D& ray, const double 
 
   if (!m_children.empty()) {
     SegmentList childSegments;
-    m_children.front()->intersect(transEye, transRay, offset, childSegments);
+    SceneNode* first = m_children.front();
+    first->intersect(transEye, transRay, childSegments);
     tVals.insert(childSegments);
     std::list<SceneNode*>::const_iterator it = m_children.begin();
     it++;
     for ( ; it != m_children.end(); it++) {
       childSegments.clear();
-      (*it)->intersect(transEye, transRay, offset, childSegments);
+      (*it)->intersect(transEye, transRay, childSegments);
       combineSegments(childSegments, tVals);
     }
 
@@ -142,14 +143,13 @@ GeometryNode::~GeometryNode()
 }
 
 
-void GeometryNode::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
-                                            SegmentList& tVals) const
+void GeometryNode::intersect(const Point3D& eye, const Vector3D& ray, SegmentList& tVals) const
 {
   const Point3D transEye = m_invtrans * eye;
   const Vector3D transRay = m_invtrans * ray;
 
   std::list<IntersectionPoint> tValues;
-  if (m_primitive->filteredIntersect(transEye, transRay, offset, tValues)) { 
+  if (m_primitive->filteredIntersect(transEye, transRay, tValues)) { 
     std::list<IntersectionPoint>::iterator it = tValues.begin();
     std::list<IntersectionPoint>::iterator next = tValues.begin();
     next++;
@@ -164,16 +164,14 @@ void GeometryNode::intersect(const Point3D& eye, const Vector3D& ray, const doub
 
     tVals.transformNormals(m_invtrans.transpose());
   }
+    if (tValues.size() % 2 != 0) std::cerr << m_name << std::endl; 
 }
 
 Mesh* GeometryNode::getBoundingBox()
 {
   Mesh* m = m_primitive->getBoundingBox();
 
- // std::cerr << "Before: " << *m << std::endl;
   m->transform(m_trans);
-  //std::cerr << "After: " << *m << std::endl;
-  //std::cerr << "trans: " << m_trans << std::endl;
 
   return m;
 }
@@ -183,10 +181,12 @@ Colour GeometryNode::getColour(const Point3D& eye, const IntersectionPoint& poi,
 {
   Colour c(0.0);
 
+  // If material has bump map, then bump normal
+  Vector3D norm = m_material->bumpNormal(poi.m_normal, m_primitive, poi.m_primitivePOI);
+
   // Normalize the normal
   // Check if we're inside an object and flip the normal if we are.
-  Vector3D norm = poi.m_normal;
-  if (refractiveIndex != 1.0) {
+  if (refractiveIndex != 1.0 && m_material->m_refractiveIndex == refractiveIndex ) {
     norm = -1 * norm;
   }
   norm.normalize();
@@ -197,13 +197,14 @@ Colour GeometryNode::getColour(const Point3D& eye, const IntersectionPoint& poi,
   // Add contribution of reflection + refraction.
   double transparency = m_material->m_transparency;
   if (transparency > 0) {
-    double reflectance = getReflectiveRatio(viewDirection, norm, refractiveIndex);
+    double reflectance = getReflectiveRatio(viewDirection, norm, refractiveIndex != 1.0 ? 1.0 : refractiveIndex);
     double transmittance = 1.0 - reflectance;
 
     Colour c1(0.0);
     if (reflectance > epsilon) {
-     c1 = c1 + reflectance * reflectionContribution(viewDirection, norm, poi.m_poi, refractiveIndex, recursiveDepth);
-    }
+      Colour c2 = reflectionContribution(viewDirection, norm, poi.m_poi, refractiveIndex, recursiveDepth);
+      c1 = c1 + reflectance *     c2;
+     }
 
     if (transmittance > epsilon) {
       c1 = c1 +  transmittance * refractionContribution(viewDirection, norm, poi.m_poi,
@@ -259,10 +260,13 @@ Colour GeometryNode::reflectionContribution(const Vector3D& viewDirection, const
     IntersectionPoint objPOI;
     
     if (m_scene->root->intersect(poi, mirrorDirection, epsilon,  objPOI)) {
-      return objPOI.m_owner->getColour(poi, objPOI, refractiveIndex, recursiveDepth + 1);
+      Colour c = objPOI.m_owner->getColour(poi, objPOI, refractiveIndex, recursiveDepth + 1);
+    //std::cerr << "Re: " << c << " " ;
+      return c;
     }
   }
 
+   // std::cerr << "Re: " << "0" << " " ;
   return Colour(0.0);
 }
 
@@ -306,7 +310,7 @@ Colour GeometryNode::getLightContribution(const IntersectionPoint& poi, const Ve
     // TODO: Add supprt for non-fully transparent objects.
     // TODO: If we ever start doing CSG with Refractive materials this won't work.
     SegmentList segments;
-    m_scene->root->intersect(poi.m_poi, lightDirection, epsilon, segments);
+    m_scene->root->intersect(poi.m_poi, lightDirection, segments);
     std::list<Segment> segs;
     segments.getValidSegments(epsilon, segs);
     bool exit = false;

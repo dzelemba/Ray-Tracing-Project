@@ -27,12 +27,6 @@ Colour PhongMaterial::getColour(const Vector3D& normal, const Vector3D& viewDire
                                 const std::list<Light*>& lights, const Colour& ambient, 
                                 const Point3D& poi, const Primitive* primitive) const
 {
-  // Bump normal if need be.
-  Vector3D norm = normal;
-  if (m_bump) {
-    norm = bumpNormal(norm, primitive, poi);
-  }
-
   // Get diffuse coefficients
   Colour kd = getDiffuse(primitive, poi);
 
@@ -46,10 +40,10 @@ Colour PhongMaterial::getColour(const Vector3D& normal, const Vector3D& viewDire
     lightDirection.normalize();
 
     double dist = lightDirection.length();
-    Vector3D r = -lightDirection + 2 * (lightDirection.dot(norm)) * norm;
+    Vector3D r = -lightDirection + 2 * (lightDirection.dot(normal)) * normal;
 
-    Colour contribution = (kd + m_ks * ( pow(r.dot(viewDirection), m_shininess) / norm.dot(lightDirection) )) *
-                          light->colour * lightDirection.dot(norm) * 
+    Colour contribution = (kd + m_ks * ( pow(r.dot(viewDirection), m_shininess) / normal.dot(lightDirection) )) *
+                          light->colour * lightDirection.dot(normal) * 
                           (1 / (light->falloff[0] + light->falloff[1] * dist +
                                 light->falloff[2] * dist * dist)); 
 
@@ -64,24 +58,27 @@ Colour PhongMaterial::getColour(const Vector3D& normal, const Vector3D& viewDire
 
 Vector3D PhongMaterial::bumpNormal(const Vector3D& n, const Primitive* primitive, const Point3D& p) const
 {
-  Point2D mapCoords = primitive->textureMapCoords(p);
+  if (m_bump) {
+    Point2D mapCoords = primitive->textureMapCoords(p);
 
-  int x = mapCoords[0] * (double)m_bumpMap.width();
-  int y = mapCoords[1] * (double)m_bumpMap.height();
+    int x = mapCoords[0] * (double)m_bumpMap.width();
+    int y = mapCoords[1] * (double)m_bumpMap.height();
   
-  if (x < 0 || x > m_bumpMap.width() || y < 0 || y > m_bumpMap.height()) {
-    std::cerr << "Bad Texture Map Coordinates Returned: " << mapCoords[0] << " " << x
-              << " " << mapCoords[1] << " " << y << std::endl;
+    if (x < 0 || x > m_bumpMap.width() || y < 0 || y > m_bumpMap.height()) {
+      std::cerr << "Bad Texture Map Coordinates Returned: " << mapCoords[0] << " " << x
+                << " " << mapCoords[1] << " " << y << std::endl;
+    }
+
+    if (x == 0 || x == m_bumpMap.width() - 1 || y == 0 || y == m_bumpMap.height() - 1) {
+      return n;
+    }
+
+    double x_gradient = 2 * (m_bumpMap(x - 1, y, 0) - m_bumpMap(x + 1, y, 0));
+    double y_gradient = 2 * (m_bumpMap(x, y - 1, 0) - m_bumpMap(x, y + 1, 0));
+
+    return Vector3D(n[0] + x_gradient, n[1] + y_gradient, n[2]);
   }
-
-  if (x == 0 || x == m_bumpMap.width() - 1 || y == 0 || y == m_bumpMap.height() - 1) {
-    return n;
-  }
-
-  double x_gradient = 2 * (m_bumpMap(x - 1, y, 0) - m_bumpMap(x + 1, y, 0));
-  double y_gradient = 2 * (m_bumpMap(x, y - 1, 0) - m_bumpMap(x, y + 1, 0));
-
-  return Vector3D(n[0] + x_gradient, n[1] + y_gradient, n[2]);
+  return n;
 }
 
 /*

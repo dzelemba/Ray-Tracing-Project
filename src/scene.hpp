@@ -24,7 +24,7 @@ class Scene {
   // Returns background colour based on screen coordinates.
   Colour getBackground(const int x, const int y) const;
 
-  // Returns backgroun colour based on ray that missed entire scene.
+  // Returns background colour based on ray that missed entire scene.
   Colour getBackground(const Point3D& eye, const Vector3D& ray) const;
 
   // Needed by DepthOfFieldRenderer.

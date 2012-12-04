@@ -10,13 +10,13 @@
 struct Args {
   Renderer* renderer;
   int startRow;
-  int numRows;
+  int stepSize;
 };
 
 void* startThread(void* data)
 {
   struct Args* args = (struct Args*)data;
-  args->renderer->renderRows(args->startRow, args->numRows);
+  args->renderer->renderRows(args->startRow, args->stepSize);
 
   return NULL;
 }
@@ -38,15 +38,14 @@ Renderer::~Renderer()
 void Renderer::render(const std::string& filename, const int numThreads)
 {
   std::vector<pthread_t*> threads;
-  int rowsPerThread = m_scene->height / numThreads;
   struct Args* data = new Args[numThreads];
   for (int i = 0; i < numThreads; i++) {
     pthread_t* thread = new pthread_t;
     threads.push_back(thread);
 
     data[i].renderer = this;
-    data[i].startRow = i * rowsPerThread;
-    data[i].numRows = rowsPerThread + (i == numThreads - 1 ? m_scene->height % numThreads : 0);
+    data[i].startRow = i;
+    data[i].stepSize = numThreads;
     pthread_create(thread, NULL, &startThread, (void *)&data[i]);
   }
 
@@ -59,23 +58,23 @@ void Renderer::render(const std::string& filename, const int numThreads)
   m_img.savePng(filename);
 }
 
-void Renderer::renderRows(const int startRow, const int numRows)
+void Renderer::renderRows(const int startRow, const int stepSize)
 {
-  int threadNo = startRow / numRows + 1;
-  if (startRow % numRows != 0) threadNo++;
+  int threadNo = startRow +1; 
+  int numRows = m_scene->height / stepSize;
 
-  for (int y = startRow; y < startRow + numRows; y++) {
+  for (int y = startRow; y < m_scene->height; y+= stepSize) {
     for (int x = 0; x < m_scene->width; x++) {
       Colour c = getPixelColour(x, y);
       m_img(x, y, 0) = c.R();
       m_img(x, y, 1) = c.G();
       m_img(x, y, 2) = c.B();
     }
-    if ((y - startRow) % (numRows / 4) == 0) {
-      std::cerr << "Thread " << threadNo << ": " << 25 * ((y - startRow) / (numRows / 4)) << "% ";
+    if ((y / stepSize) % (numRows / 4) == 0) {
+      std::cerr << "Thread " << threadNo << ": " << 25 * ((y / stepSize) / (numRows / 4)) << "% ";
     }
   }
-  std::cerr << std::endl;
+  std::cerr << "Thread " << threadNo << " done" << std::endl;
 }
 /*
   *************** BasicRenderer **************

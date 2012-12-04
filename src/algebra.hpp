@@ -28,7 +28,7 @@ const double tightEpsilon = 0.0000001;
 
 // Convience functions for epsilon checks
 
-bool equal(const double d1, const double d2);
+bool equal(const double d1, const double d2, const double e);
 
 class GeometryNode;
 

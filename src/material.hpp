@@ -27,6 +27,7 @@ class PhongMaterial {
   const double m_transparency;
   const double m_refractiveIndex;
 
+  Vector3D bumpNormal(const Vector3D& n, const Primitive* primitive, const Point3D& p) const;
  protected:
   virtual Colour getDiffuse(const Primitive* primitive, const Point3D& p) const = 0;
 
@@ -34,7 +35,6 @@ class PhongMaterial {
   double m_shininess;
 
  private:
-  Vector3D bumpNormal(const Vector3D& n, const Primitive* primitive, const Point3D& p) const;
 
   bool m_bump;
   Image m_bumpMap;

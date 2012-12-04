@@ -23,7 +23,7 @@ bool Polygon::checkPointForLine(const Point3D& p, const Point3D& p1, const Point
   return planeNormal.dot(p - p1) < tightEpsilon;
 }
 
-bool Polygon::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool Polygon::intersect(const Point3D& eye, const Vector3D& ray, 
                         std::list<IntersectionPoint>& tVals) const
 {
   double t = m_plane.intersect(eye, ray); 
@@ -73,7 +73,7 @@ bool Polygon::intersect(const Point3D& p) const
   return true;
 }
 
-Point2D Polygon::textureMapCoords(const Point3D& p) const
+Point2D Polygon::textureMapCoords(const Point3D& p, double& width, double& height) const
 {
   // Pick any point to be our "center"
   Point3D center = m_verts.front();  
@@ -98,15 +98,23 @@ Point2D Polygon::textureMapCoords(const Point3D& p) const
   
   // Now get coordinates for our point.
   if (solve3x2System(m_plane.m_up, m_plane.m_right, p - center, coords)) {
-    double x = (coords[0] - minX) / (maxX - minX);
-    double y = (coords[1] - minY) / (maxY - minY);
+    width =  (maxX - minX);
+    height = (maxY - minY);
 
-    return Point2D(x, y);
+    return Point2D(coords[0] - minX, coords[1] - minY);
   } else {
     std::cerr << "Failed to solve system in polygon: " << m_plane.m_up << " "
               << m_plane.m_right << " " << p - center << std::endl;
   }
   return Point2D(-1, -1);
+}
+
+Point2D Polygon::textureMapCoords(const Point3D& p) const
+{
+  double width, height;
+  Point2D coords = textureMapCoords(p, width, height);
+
+  return Point2D(coords[0] / width, coords[1] / height);
 }
 
 void Polygon::transform(const Matrix4x4& m)
@@ -138,7 +146,7 @@ Circle::~Circle()
 {
 }
 
-bool Circle::intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+bool Circle::intersect(const Point3D& eye, const Vector3D& ray, 
                        std::list<IntersectionPoint>& tVals) const
 {
   double t = m_plane.intersect(eye, ray); 

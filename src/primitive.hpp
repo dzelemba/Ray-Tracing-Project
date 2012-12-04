@@ -11,9 +11,9 @@ class Mesh;
 class Primitive {
  public:
   virtual ~Primitive();
-  virtual bool filteredIntersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  virtual bool filteredIntersect(const Point3D& eye, const Vector3D& ray,
                                  std::list<IntersectionPoint>& tVals) const;
-  virtual bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  virtual bool intersect(const Point3D& eye, const Vector3D& ray,
                          std::list<IntersectionPoint>& tVals) const = 0;
   virtual bool containsPoint(const Point3D& p) const = 0;
   virtual Point2D textureMapCoords(const Point3D& p) const = 0;
@@ -22,7 +22,7 @@ class Primitive {
   virtual Mesh* getBoundingBox() const = 0;
 
  protected:
-  bool checkQuadraticRoots(const Point3D& eye, const Vector3D& ray, const double minValue,
+  bool checkQuadraticRoots(const Point3D& eye, const Vector3D& ray,
                            const double A, const double B, const double C,
                            std::list<IntersectionPoint>& tVals) const;
 
@@ -37,7 +37,7 @@ public:
   }
   virtual ~NonhierSphere();
 
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
@@ -60,8 +60,8 @@ public:
 
   typedef std::vector<int> Face;
   
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset, Point3D& poi) const;
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray,  Point3D& poi) const;
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
@@ -89,7 +89,7 @@ public:
   NonhierBox(const Point3D& pos, double size);
   virtual ~NonhierBox();
 
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
@@ -108,7 +108,7 @@ public:
   {}
   virtual ~Sphere();
 
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
@@ -130,7 +130,7 @@ class Cube : public Primitive {
   {}
   virtual ~Cube();
 
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
@@ -151,7 +151,7 @@ class Cone : public Primitive {
   Cone();
   virtual ~Cone();
 
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;
@@ -177,7 +177,7 @@ class Cylinder : public Primitive {
   Cylinder();
   virtual ~Cylinder();
 
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray, 
                  std::list<IntersectionPoint>& tVals) const;
   bool containsPoint(const Point3D& p) const;
   Vector3D getNormal(const Point3D& p) const;

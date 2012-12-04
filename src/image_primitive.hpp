@@ -5,11 +5,11 @@
 
 class ImagePrimitive : public Primitive {
  public:
-  ImagePrimitive();
+  ImagePrimitive(const int copies = 1);
 
-  bool filteredIntersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool filteredIntersect(const Point3D& eye, const Vector3D& ray,
                                  std::list<IntersectionPoint>& tVals) const;
-  bool intersect(const Point3D& eye, const Vector3D& ray, const double offset,
+  bool intersect(const Point3D& eye, const Vector3D& ray,
                          std::list<IntersectionPoint>& tVals) const;
   bool containsPoint(const Point3D& p) const;
   Point2D textureMapCoords(const Point3D& p) const;
@@ -18,6 +18,7 @@ class ImagePrimitive : public Primitive {
   Mesh* getBoundingBox() const;
  private:
   Polygon m_face;
+  int m_copies;
 };
 
 #endif
