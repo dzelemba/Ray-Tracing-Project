@@ -1,3 +1,9 @@
+Check out samples of each objective here: 
+  https://github.com/dzelemba/Ray-Tracing-Project/wiki/Samples.
+
+Check out other projects from the same year here:
+  https://www.student.cs.uwaterloo.ca/~cs488/gallery-A5-2011-2012.html
+
 Name: Dusan Zelembaba
 Student Number: 20349855
 User-id: dzelemba
@@ -33,8 +39,7 @@ I have created the following data files, which are in the data directory:
     treetest.lua, leaftest.lua, leaf.lua
     finalscene.lua
 
-Objectives: Check out samples of each objective here: 
-            https://github.com/dzelemba/Ray-Tracing-Project/wiki/Samples.
+Objectives:
 
      0: Reflections were implemented as my A4 extra feature.
 
